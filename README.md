@@ -47,7 +47,7 @@ Built with ❤️ in **India**, for the **world**.
 | **UI** | React Native 0.86, React 19.2 with Reanimated 4.5 animations |
 | **State Management** | [Zustand](https://github.com/pmndrs/zustand) with SecureStore persistence |
 | **Crypto** | [Signal Protocol](https://signal.org/docs/) — X3DH, Double Ratchet, VXEdDSA |
-| **Native Crypto Module** | [expo-libsignal-dezire](https://github.com/debarkamondal/expo-libsignal-dezire) (Rust C-FFI native module) |
+| **Native Crypto Module** | [expo-libsignal-dezire](https://github.com/nijhum-in/expo-libsignal-dezire) (Rust C-FFI native module) |
 | **Transport** | MQTT over TLS (via `expo-native-mqtt`) |
 | **Local Database** | [expo-sqlite](https://docs.expo.dev/versions/latest/sdk/sqlite/) with SQLCipher encryption |
 | **Secure Storage** | [expo-secure-store](https://docs.expo.dev/versions/latest/sdk/securestore/) for key material |
@@ -105,7 +105,7 @@ khamoshchat-mobile/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/debarkamondal/khamoshchat-mobile.git
+git clone https://github.com/nijhum-in/khamoshchat-mobile.git
 cd khamoshchat-mobile
 ```
 

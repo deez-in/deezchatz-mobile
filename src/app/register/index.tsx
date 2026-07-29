@@ -155,11 +155,11 @@ export default function Register() {
       <View style={dynamicStyles.card}>
         <StyledText style={dynamicStyles.badge}>Android native OAuth</StyledText>
         <StyledText style={dynamicStyles.heading}>
-          Welcome to <StyledText style={styles.branding}>KhamoshChat</StyledText>
+          Welcome to <StyledText style={styles.branding}>Nijhum</StyledText>
         </StyledText>
         <StyledText style={styles.emoji}>🤫</StyledText>
         <StyledText style={dynamicStyles.subheading}>
-          Continue with your Google account to create or access your KhamoshChat profile.
+          Continue with your Google account to create or access your Nijhum profile.
         </StyledText>
         <StyledButton
           style={dynamicStyles.button}

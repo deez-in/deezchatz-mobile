@@ -38,22 +38,22 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build APK locally
-        run: eas build --platform android --profile preview --local --non-interactive --output ./khamoshchat.apk
+        run: eas build --platform android --profile preview --local --non-interactive --output ./nijhum.apk
 
       - name: Rename APK with version
         run: |
           VERSION="${GITHUB_REF_NAME:-dev}"
-          mv khamoshchat.apk "khamoshchat-${VERSION}.apk"
+          mv nijhum.apk "nijhum-${VERSION}.apk"
 
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: khamoshchat-apk
-          path: khamoshchat-*.apk
+          name: nijhum-apk
+          path: nijhum-*.apk
           retention-days: 30
 
       - name: Attach APK to GitHub Release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: khamoshchat-*.apk
+          files: nijhum-*.apk

@@ -1,4 +1,4 @@
-# AGENTS.md - KhamoshChat Mobile
+# AGENTS.md - Nijhum Mobile
 
 This document provides guidance for AI coding agents working in this codebase.
 

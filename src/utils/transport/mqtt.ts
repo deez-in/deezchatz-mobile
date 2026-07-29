@@ -8,7 +8,7 @@ import MqttClient from "expo-native-mqtt";
 
 /**
  * Builds an MQTT topic for sending messages.
- * Format: /khamoshchat/<recipientId>/<recipientDeviceId>/<senderId>/<senderDeviceId>
+ * Format: /nijhum/<recipientId>/<recipientDeviceId>/<senderId>/<senderDeviceId>
  */
 export function buildTopic(
     recipientUserId: string,
@@ -16,7 +16,7 @@ export function buildTopic(
     senderUserId: string,
     senderDeviceId: string,
 ): string {
-    return `/khamoshchat/${recipientUserId}/${recipientDeviceId}/${senderUserId}/${senderDeviceId}`;
+    return `/nijhum/${recipientUserId}/${recipientDeviceId}/${senderUserId}/${senderDeviceId}`;
 }
 
 /**
