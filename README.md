@@ -173,7 +173,7 @@ This project stands on the shoulders of some incredible open-source work:
 - **[Expo](https://expo.dev)** — for making cross-platform React Native development a joy
 - **[VerneMQ](https://vernemq.com/)** — for a rock-solid, scalable MQTT broker
 - **[Zustand](https://github.com/pmndrs/zustand)** — for delightfully simple state management
-- **[expo-libsignal-dezire](https://github.com/debarkamondal/expo-libsignal-dezire)** — for native Rust Signal protocol FFI bindings
+- **[expo-libsignal-dezire](https://github.com/nijhum-in/expo-libsignal-dezire)** — for native Rust Signal protocol FFI bindings
 ---
 
 ## License
