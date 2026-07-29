@@ -4,7 +4,7 @@ This document provides guidance for AI coding agents working in this codebase.
 
 ## Project Overview
 
-KhamoshChat is a React Native mobile messaging app built with Expo SDK 57.
+Nijhum is a React Native mobile messaging app built with Expo SDK 57.
 It uses the file-based routing system (`expo-router`) and integrates native Rust
 Signal protocol cryptography via the `expo-libsignal-dezire` package.
 
@@ -270,4 +270,4 @@ Automated unit tests are written with **Jest** and **React Native Testing Librar
 
 Automated Android APK builds are handled via GitHub Actions in `.github/workflows/build-android.yml`.
 - Runs local EAS builds on Ubuntu runners for releases or manual triggers (`workflow_dispatch`).
-- Outputs standalone `khamoshchat-*.apk` binaries attached to releases.
+- Outputs standalone `nijhum-*.apk` binaries attached to releases.

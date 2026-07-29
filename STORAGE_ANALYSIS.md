@@ -1,8 +1,8 @@
-# KhamoshChat — Data Storage Analysis
+# Nijhum — Data Storage Analysis
 
 ## Overview
 
-KhamoshChat uses a **three-tier storage architecture**:
+Nijhum uses a **three-tier storage architecture**:
 
 | Tier | Technology | Purpose | Encrypted? |
 |------|-----------|---------|------------|

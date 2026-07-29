@@ -1,5 +1,5 @@
 
-# Khamosh 🤫!!!
+# Nijhum 🤫
 
 [![Expo SDK](https://img.shields.io/badge/Expo_SDK-57-blue?logo=expo)](https://expo.dev)
 [![React Native](https://img.shields.io/badge/React_Native-0.86-61DAFB?logo=react)](https://reactnative.dev)
@@ -7,12 +7,10 @@
 [![Platform](https://img.shields.io/badge/Platform-iOS%20%7C%20Android-lightgrey)]()
 [![Signal Protocol](https://img.shields.io/badge/Encryption-Signal_Protocol-green?logo=signal)](https://signal.org/docs/)
 
-**Khamosh-chat** is an app where staying ***Khamosh*** 🤫 (Hindi: silent) is a sin — because nobody is listening.
+**Nijhum** is an end-to-end encrypted messaging application built for private, secure communication.
 A safe & secure world for just the two of you and nobody else.
 
-Built with end-to-end encryption powered by the Signal Protocol, this is a privacy-first chat app that takes your conversations seriously (even if you don't 😏).
-
-> ***Ekdum Khamosh nahi rehneka !!!***
+Built with end-to-end encryption powered by the Signal Protocol, this is a privacy-first chat app that takes your conversations seriously.
 
 Built with ❤️ in **India**, for the **world**.
 
@@ -58,7 +56,7 @@ Built with ❤️ in **India**, for the **world**.
 ## Architecture
 
 ```
-khamoshchat-mobile/
+nijhum-mobile/
 ├── .github/
 │   └── workflows/            # GitHub Actions workflows (e.g. build-android.yml)
 ├── src/
@@ -105,8 +103,8 @@ khamoshchat-mobile/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/nijhum-in/khamoshchat-mobile.git
-cd khamoshchat-mobile
+git clone https://github.com/nijhum-in/nijhum-mobile.git
+cd nijhum-mobile
 ```
 
 ### 2. Install dependencies
