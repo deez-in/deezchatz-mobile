@@ -6,7 +6,7 @@
 [![Platform](https://img.shields.io/badge/Platform-iOS%20%7C%20Android-lightgrey)]()
 [![Signal Protocol](https://img.shields.io/badge/Encryption-Signal_Protocol-green?logo=signal)](https://signal.org/docs/)
 
-**Deez Chatz** is a zero-trust, end-to-end encrypted messaging app built for fast, paranoid-level private communication. Ain't nobody reading Deez Chatz — not your ISP, not Big Tech, and definitely not our servers. Your messages belong to nobody but you and yours truly. Here at 'Deez', we don't hoard your data: storing useless logs costs real money and burns trees, and frankly... ain't nobody trying to pay servers to host your 3 AM chatzzzz anyway 💬🔥
+**Deez Chatz** is a zero-trust, end-to-end encrypted messaging app built for fast, paranoid-level private communication. Ain't nobody reading Deez Chatz — not your ISP, not Big Tech, and definitely not our servers. Your messages belong to nobody but you and yours truly. Here at 'Deez', we don't hoard your data: storing useless logs costs real money and burns trees, and frankly... ain't nobody trying to pay servers to host your 3 AM chatzzz anyway 💬🔥
 
 Built with ❤️ in **India**, for the **world**.
 
@@ -115,8 +115,8 @@ The server-side infrastructure uses **RMQTT** as the MQTT broker, secured with T
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/nijhum-in/nijhum-mobile.git
-cd nijhum-mobile
+git clone https://github.com/deez-in/deezchatz-mobile.git
+cd deezchatz-mobile
 ```
 
 ### 2. Install dependencies
