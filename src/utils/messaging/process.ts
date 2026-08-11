@@ -24,9 +24,9 @@ export async function processIncomingMessage(
     const parsed = JSON.parse(rawPayload);
     const payload = parsed as X3DHBundle & { ciphertext: string; header: string };
 
-    // Extract sender from topic: /nijhum/{recipientId}/{recipientDeviceId}/{senderId}/{senderDeviceId}
+    // Extract sender from topic: /deezchatz/{recipientId}/{recipientDeviceId}/{senderId}/{senderDeviceId}
     const topicParts = topic.split('/');
-    // topicParts: ['', 'nijhum', recipientId, recipientDeviceId, senderId, senderDeviceId]
+    // topicParts: ['', 'deezchatz', recipientId, recipientDeviceId, senderId, senderDeviceId]
     const senderUserId = topicParts.length >= 6 ? decodeURIComponent(topicParts[4]) : null;
     const senderDeviceId = topicParts.length >= 6 ? decodeURIComponent(topicParts[5]) : null;
 

@@ -1,8 +1,8 @@
-# Nijhum — Data Storage Analysis
+# DeezChatz — Data Storage Analysis
 
 ## Overview
 
-Nijhum uses a **three-tier storage architecture**:
+DeezChatz uses a **three-tier storage architecture**:
 
 | Tier | Technology | Purpose | Encrypted? |
 |------|-----------|---------|------------|

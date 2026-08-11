@@ -161,7 +161,7 @@ const useMqtt = (topic: string) => {
                     console.debug(`Connected to MQTT broker for topic: ${topic}`);
                     setConnected(true);
 
-                    const topicPath = `/nijhum/${session.userId}/${session.deviceId}/#`;
+                    const topicPath = `/deezchatz/${session.userId}/${session.deviceId}/#`;
                     try {
                         await MqttClient.subscribe(topicPath, 1);
                         console.debug(`Subscribed to ${topicPath}`);
@@ -186,7 +186,7 @@ const useMqtt = (topic: string) => {
                 subscriptions.push(errorSub);
 
                 // 3. Connect
-                const clientId = `nijhum-${session.userId}-${session.deviceId}`;
+                const clientId = `deezchatz-${session.userId}-${session.deviceId}`;
                 await MqttClient.connect(
                     `${process.env.EXPO_PUBLIC_MQTT_URL}`,
                     "dezire",

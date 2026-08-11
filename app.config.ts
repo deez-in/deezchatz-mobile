@@ -1,16 +1,16 @@
 import type { ExpoConfig } from "expo/config";
 
 const config: ExpoConfig = {
-  name: "nijhum",
-  slug: "nijhum",
+  name: "DeezChatz",
+  slug: "deezchatz",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./src/assets/images/icon.png",
-  scheme: "nijhum",
+  scheme: "deezchatz",
   userInterfaceStyle: "automatic",
   ios: {
     supportsTablet: true,
-    bundleIdentifier: "in.nijhum.chat",
+    bundleIdentifier: "in.deez.chatz",
     infoPlist: {
       UIBackgroundModes: ["remote-notification"],
     },
@@ -23,7 +23,7 @@ const config: ExpoConfig = {
       monochromeImage: "./src/assets/images/android-icon-monochrome.png",
     },
     predictiveBackGestureEnabled: true,
-    package: "in.nijhum.chat",
+    package: "in.deez.chatz",
     permissions: [
       "android.permission.READ_CONTACTS",
       "android.permission.WRITE_CONTACTS",
@@ -98,7 +98,7 @@ const config: ExpoConfig = {
       projectId: "11605f69-16d6-472c-85a4-157fb733b573",
     },
   },
-  owner: "nijhum-org",
+  owner: "deez-in",
 };
 
 export default config;

@@ -14,8 +14,8 @@
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "822771804895-km33bci738d66psmtj3dre95d5cgml3s.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "822771804895-gn22q3ah6hp7n9mm4v2mcks1345kaiij.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "822771804895-blggkiescmpvk1qp3qc0vdj2jdtel8lg.apps.googleusercontent.com",
-        "EXPO_PUBLIC_MQTT_URL": "ssl://mqtt.nijhum.in:8883",
-        "EXPO_PUBLIC_API_URL": "https://api.nijhum.in"
+        "EXPO_PUBLIC_MQTT_URL": "ssl://mqtt.deez.in:8883",
+        "EXPO_PUBLIC_API_URL": "https://api.chatz.deez.in"
       }
     },
     "preview": {
@@ -27,8 +27,8 @@
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "822771804895-km33bci738d66psmtj3dre95d5cgml3s.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "822771804895-gn22q3ah6hp7n9mm4v2mcks1345kaiij.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "822771804895-blggkiescmpvk1qp3qc0vdj2jdtel8lg.apps.googleusercontent.com",
-        "EXPO_PUBLIC_MQTT_URL": "ssl://mqtt.nijhum.in:8883",
-        "EXPO_PUBLIC_API_URL": "https://api.nijhum.in"
+        "EXPO_PUBLIC_MQTT_URL": "ssl://mqtt.deez.in:8883",
+        "EXPO_PUBLIC_API_URL": "https://api.chatz.deez.in"
       }
     },
     "production": {
@@ -37,8 +37,8 @@
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "822771804895-km33bci738d66psmtj3dre95d5cgml3s.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "822771804895-gn22q3ah6hp7n9mm4v2mcks1345kaiij.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "822771804895-blggkiescmpvk1qp3qc0vdj2jdtel8lg.apps.googleusercontent.com",
-        "EXPO_PUBLIC_MQTT_URL": "ssl://mqtt.nijhum.in:8883",
-        "EXPO_PUBLIC_API_URL": "https://api.nijhum.in"
+        "EXPO_PUBLIC_MQTT_URL": "ssl://mqtt.deez.in:8883",
+        "EXPO_PUBLIC_API_URL": "https://api.chatz.deez.in"
       }
     }
   },
