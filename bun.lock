@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "nijhum-mobile",
+      "name": "deezchatz-mobile",
       "dependencies": {
         "@expo/vector-icons": "^15.1.1",
         "expo": "^57.0.0",

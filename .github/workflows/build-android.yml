@@ -38,22 +38,22 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build APK locally
-        run: eas build --platform android --profile preview --local --non-interactive --output ./nijhum.apk
+        run: eas build --platform android --profile preview --local --non-interactive --output ./deezchatz.apk
 
       - name: Rename APK with version
         run: |
           VERSION="${GITHUB_REF_NAME:-dev}"
-          mv nijhum.apk "nijhum-${VERSION}.apk"
+          mv deezchatz.apk "deezchatz-${VERSION}.apk"
 
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: nijhum-apk
-          path: nijhum-*.apk
+          name: deezchatz-apk
+          path: deezchatz-*.apk
           retention-days: 30
 
       - name: Attach APK to GitHub Release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: nijhum-*.apk
+          files: deezchatz-*.apk
