@@ -2,6 +2,7 @@
 import MqttClient from "expo-native-mqtt";
 import { useEffect } from "react";
 import { Alert } from "react-native";
+import { fromBase64, toString } from "@/src/utils/helpers/encoding";
 import useMqttStore from "@/src/store/useMqttStore";
 import useSession, { Session } from "@/src/store/useSession";
 import { processIncomingMessage } from "@/src/utils/messaging";
@@ -136,14 +137,17 @@ const useMqtt = (topic: string) => {
                 //    broker will never redeliver if our processing fails.
                 const messageSub = MqttClient.addListener(
                     "onMqttMessageReceived",
-                    async (data: { topic: string; payload: string }) => {
+                    async (data: { topic: string; payloadBase64: string }) => {
                         let inboxId: number | null = null;
                         try {
+                            const payloadBytes = fromBase64(data.payloadBase64);
+                            const payloadStr = toString(payloadBytes);
+
                             // Step 1: Save raw ciphertext to inbox (fast, no crypto)
-                            inboxId = await saveToInbox(data.topic, data.payload);
+                            inboxId = await saveToInbox(data.topic, payloadStr);
 
                             // Step 2: Attempt full processing
-                            await processIncomingMessage(session, data.topic, data.payload);
+                            await processIncomingMessage(session, data.topic, payloadStr);
 
                             // Step 3: Mark as done
                             await markInboxProcessed(inboxId);

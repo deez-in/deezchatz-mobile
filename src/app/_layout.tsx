@@ -7,11 +7,11 @@ import { ThemeProvider, useTheme } from "@/src/hooks/useTheme";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import useMqtt, { processInboxRetries, processOutboxRetries } from "@/src/hooks/useMqtt";
 import {
-    openPrimaryDatabase,
-    reopenAllDatabases,
-    DatabaseKeyMismatchError,
-    pruneInbox,
-    pruneOutbox,
+  openPrimaryDatabase,
+  reopenAllDatabases,
+  DatabaseKeyMismatchError,
+  pruneInbox,
+  pruneOutbox,
 } from "@/src/utils/storage";
 import useNotifications from "@/src/hooks/useNotifications";
 

@@ -62,6 +62,7 @@ export default function Register() {
         },
       });
     } catch (error) {
+      console.error("[GoogleSignIn] Error occurred during sign-in flow:", error);
       const authError =
         error instanceof GoogleAuthFlowError
           ? error

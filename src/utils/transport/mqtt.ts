@@ -5,6 +5,7 @@
 
 // WARNING: Switch to npm import once published: import MqttClient from 'expo-native-mqtt';
 import MqttClient from "expo-native-mqtt";
+import { toBase64, toBytes } from "../helpers/encoding";
 
 /**
  * Builds an MQTT topic for sending messages.
@@ -28,7 +29,8 @@ export async function publishMessage(
     payload: string
 ): Promise<boolean> {
     try {
-        await MqttClient.publish(topic, payload, 1);
+        const payloadBase64 = toBase64(toBytes(payload));
+        await MqttClient.publish(topic, payloadBase64, 1);
         return true;
     } catch (e) {
         console.error('MQTT publish failed:', e);

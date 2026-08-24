@@ -26,7 +26,7 @@
     "expo-image": "~57.0.3",
     "expo-libsignal-dezire": "^0.1.2",
     "expo-linking": "~57.0.6",
-    "expo-native-mqtt": "git+https://github.com/deez-in/expo-native-mqtt.git#1313ec7cfa3904f89b9759d9f4dc2ea281313aa8",
+    "expo-native-mqtt": "^0.4.1",
     "expo-notifications": "~57.0.12",
     "expo-router": "~57.0.14",
     "expo-secure-store": "~57.0.1",
