@@ -123,10 +123,11 @@ export async function processOutboxRetries(): Promise<void> {
 const useMqtt = (topic: string) => {
     const setClient = useMqttStore(s => s.setClient);
     const setConnected = useMqttStore(s => s.setConnected);
-    const session = useSession();
+    const userId = useSession(s => s.userId);
+    const deviceId = useSession(s => s.deviceId);
 
     useEffect(() => {
-        if (!topic) return;
+        if (!topic || !userId || !deviceId) return;
 
         let subscriptions: { remove: () => void }[] = [];
 
@@ -147,6 +148,7 @@ const useMqtt = (topic: string) => {
                             inboxId = await saveToInbox(data.topic, payloadStr);
 
                             // Step 2: Attempt full processing
+                            const session = useSession.getState();
                             await processIncomingMessage(session, data.topic, payloadStr);
 
                             // Step 3: Mark as done
@@ -165,7 +167,7 @@ const useMqtt = (topic: string) => {
                     console.debug(`Connected to MQTT broker for topic: ${topic}`);
                     setConnected(true);
 
-                    const topicPath = `/deezchatz/${session.userId}/${session.deviceId}/#`;
+                    const topicPath = `/deezchatz/${userId}/${deviceId}/#`;
                     try {
                         await MqttClient.subscribe(topicPath, 1);
                         console.debug(`Subscribed to ${topicPath}`);
@@ -190,7 +192,7 @@ const useMqtt = (topic: string) => {
                 subscriptions.push(errorSub);
 
                 // 3. Connect
-                const clientId = `deezchatz-${session.userId}-${session.deviceId}`;
+                const clientId = `deezchatz-${userId}-${deviceId}`;
                 await MqttClient.connect(
                     `${process.env.EXPO_PUBLIC_MQTT_URL}`,
                     "dezire",
@@ -222,7 +224,7 @@ const useMqtt = (topic: string) => {
             setConnected(false);
             setClient(undefined);
         };
-    }, [topic, session, setClient, setConnected]);
+    }, [topic, userId, deviceId, setClient, setConnected]);
 };
 
 export default useMqtt;
