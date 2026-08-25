@@ -95,7 +95,7 @@ const config: ExpoConfig = {
   extra: {
     router: {},
     eas: {
-      projectId: "11605f69-16d6-472c-85a4-157fb733b573",
+      projectId: "c7714ca8-54f2-4568-8335-6b88a9aaac52",
     },
   },
   owner: "deez-in",
