@@ -19,8 +19,7 @@
 
 import useMqttStore from '@/src/store/useMqttStore';
 import { Session } from '@/src/store/useSession';
-import { RatchetEncryptResult } from 'expo-libsignal-dezire';
-import LibsignalDezireModule from 'expo-libsignal-dezire';
+import LibsignalDezireModule, { RatchetEncryptResult } from 'expo-libsignal-dezire';
 
 import { toBase64, fromBase64, toBytes } from '../helpers/encoding';
 import {
@@ -37,7 +36,7 @@ import {
     OutboxPersistError,
     UserNotFoundError,
 } from '../storage';
-import { buildTopic, publishMessage } from '../transport/mqtt';
+import { buildMessageTopic, publishMessage } from '../transport/mqtt';
 import { x3dhInitiator, PreKeyBundle, clearSession } from '../crypto';
 import { constructSenderAD } from '../crypto/associatedData';
 import { apiRequest } from '../transport/api';
@@ -194,7 +193,7 @@ export async function sendInitialMessage({
     };
     const payloadStr = JSON.stringify(payload);
 
-    const topic = buildTopic(
+    const topic = buildMessageTopic(
         resolvedUserId, preKeyBundle.deviceId,
         session.userId!, session.deviceId!
     );
@@ -279,7 +278,7 @@ export async function sendMessage({
     // 3. Save message as 'pending' + queue to outbox
     let messageId: string;
     let outboxId: number;
-    const topic = buildTopic(
+    const topic = buildMessageTopic(
         recipientUserId, recipientDeviceId,
         session.userId!, session.deviceId!
     );
