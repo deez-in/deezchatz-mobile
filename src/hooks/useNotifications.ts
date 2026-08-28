@@ -11,15 +11,7 @@ import {
   BACKGROUND_NOTIFICATION_TASK,
 } from '@/src/utils/notifications';
 
-// Configures how local notifications appear in the foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+
 
 export default function useNotifications(isAuthenticated: boolean) {
   const { pushToken, pushTokenRegistered, setPushToken, setPushTokenRegistered, googleOauthToken } = useSession((s) => s);
