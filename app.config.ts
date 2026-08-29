@@ -24,10 +24,6 @@ const config: ExpoConfig = {
     },
     predictiveBackGestureEnabled: true,
     package: "in.deez.chatz",
-    permissions: [
-      "android.permission.READ_CONTACTS",
-      "android.permission.WRITE_CONTACTS",
-    ],
     googleServicesFile: "./google-services.json", // TODO: SETUP REQUIRED - Place google-services.json in root directory
   },
   web: {

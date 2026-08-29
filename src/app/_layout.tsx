@@ -15,9 +15,6 @@ import {
 } from "@/src/utils/storage";
 import useNotifications from "@/src/hooks/useNotifications";
 
-// Ensures background task is registered before React mounts
-import "@/src/utils/notifications/background";
-
 // Set the animation options. This is optional.
 SplashScreen.setOptions({
   duration: 1000,

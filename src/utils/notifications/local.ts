@@ -25,7 +25,6 @@ export async function setupNotificationChannel() {
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#FFCC00',
-      sound: 'default',
       showBadge: true,
       enableVibrate: true,
       enableLights: true,
