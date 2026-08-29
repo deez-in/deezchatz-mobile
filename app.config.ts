@@ -5,7 +5,7 @@ const config: ExpoConfig = {
   slug: "deezchatz",
   version: "0.5.0",
   orientation: "portrait",
-  icon: "./src/assets/images/icon.png",
+  icon: "./src/assets/images/icon.icon",
   scheme: "deezchatz",
   userInterfaceStyle: "automatic",
   ios: {
@@ -19,12 +19,11 @@ const config: ExpoConfig = {
     adaptiveIcon: {
       backgroundColor: "#E6F4FE",
       foregroundImage: "./src/assets/images/android-icon-foreground.png",
-      backgroundImage: "./src/assets/images/android-icon-background.png",
       monochromeImage: "./src/assets/images/android-icon-monochrome.png",
     },
     predictiveBackGestureEnabled: true,
     package: "in.deez.chatz",
-    googleServicesFile: "./google-services.json", // TODO: SETUP REQUIRED - Place google-services.json in root directory
+    googleServicesFile: "./google-services.json",
   },
   web: {
     output: "static",
@@ -37,7 +36,7 @@ const config: ExpoConfig = {
       "expo-notifications",
       {
         icon: "./src/assets/images/icon.png",
-        color: "#FFCC00", 
+        color: "#FFCC00",
         androidMode: "default",
       },
     ],
