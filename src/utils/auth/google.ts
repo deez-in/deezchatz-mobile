@@ -2,7 +2,7 @@ import { signIn as googleSignIn, signOut as googleSignOut, GoogleSignInResult } 
 import LibsignalDezireModule from "expo-libsignal-dezire";
 import { generateOpks } from "@/src/utils/crypto/oneTimePreKeys";
 import useSession from "@/src/store/useSession";
-import { toBase64 } from "@/src/utils/helpers/encoding";
+import { toBase64, toBytes } from "@/src/utils/helpers/encoding";
 import { apiRequest } from "@/src/utils/transport/api";
 
 export type AuthenticatedUser = {
@@ -68,42 +68,49 @@ export async function startGoogleSignIn(): Promise<AuthenticatedUser> {
   };
 }
 
-// Phase 1: OAuth verification → returns server-assigned userId
+// Phase 1: OAuth verification → returns server-assigned userId and state challenge
 export async function verifyGoogleIdToken(idToken: string): Promise<{
   userId: string;
+  state: string;
   email: string;
   name: string | null;
   picture: string | null;
 }> {
+  const session = useSession.getState();
+  const iKey = await session.initIdentityKey();
+  const pubIKey = await LibsignalDezireModule.genPubKey(iKey);
+
   return apiRequest("/register/google/id_token", {
     method: "POST",
-    body: { idToken: idToken },
+    body: { idToken: idToken, iKey: toBase64(pubIKey) },
   });
 }
 
 // Phase 2: Device + key registration
 export async function registerDevice(
-  userId: string,
+  stateToken: string,
   phoneDetails: { countryCode: string; number: number },
   fcmToken?: string | null,
 ): Promise<string> {
   const session = useSession.getState();
-  const { iKey, preKey, devKey } = await session.initSession(phoneDetails);
+  const { preKey, devKey } = await session.initDeviceKeys(phoneDetails);
+  const iKey = session.iKey;
 
-  const pubIKey = await LibsignalDezireModule.genPubKey(iKey);
   const pubPreKey = await LibsignalDezireModule.genPubKey(preKey);
   const pubDevKey = await LibsignalDezireModule.genPubKey(devKey);
 
   const { signature: preKeySign, vrf: preKeyVrf } = await LibsignalDezireModule.vxeddsaSign(iKey, pubPreKey);
   const { signature: devKeySign, vrf: devKeyVrf } = await LibsignalDezireModule.vxeddsaSign(iKey, pubDevKey);
+  const { signature: stateSignature, vrf: stateVrf } = await LibsignalDezireModule.vxeddsaSign(iKey, toBytes(stateToken));
   const opksB64 = await generateOpks();
 
   const response = await apiRequest<{ status: string; userId: string; deviceId: string }>("/register/device", {
     method: "POST",
     body: {
-      userId: userId,
+      state: stateToken,
+      stateSignature: toBase64(stateSignature),
+      stateVrf: toBase64(stateVrf),
       phone: `${phoneDetails.countryCode}${phoneDetails.number}`,
-      iKey: toBase64(pubIKey),
       signedPreKey: toBase64(pubPreKey),
       preKeySign: toBase64(preKeySign),
       preKeyVrf: toBase64(preKeyVrf),

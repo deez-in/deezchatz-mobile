@@ -1,10 +1,32 @@
-# AGENTS.md - KhamoshChat Mobile
+# AGENTS.md - DeezChatz Mobile
 
 This document provides guidance for AI coding agents working in this codebase.
 
+## Ecosystem Context
+
+> **This is the mobile app that users install.** It sits at the top of the dependency stack and consumes all other Deez Chatz projects.
+
+```
+⭐ deezchatz-mobile (this repo)
+  ├── expo-google-native-oauth (Native Module)
+  ├── expo-libsignal-dezire (Native Module + Rust FFI)
+  └── DeezChatz API (Backend via REST + MQTT)
+```
+
+| Component | How it's used |
+|-----------|--------------|
+| **expo-google-native-oauth** | Used in `src/app/register/` to get the Google `idToken` |
+| **expo-libsignal-dezire** | Used in `src/utils/crypto/` for all cryptographic operations |
+| **DeezChatz API** | Public API (port 3000) for registration/key discovery. Private API (port 3001) is internal to the backend. |
+| **RMQTT** | The MQTT broker used for real-time encrypted messaging (via `expo-native-mqtt`) |
+
+### Cross-Repo Awareness
+- **Crypto changes**: If encryption behavior changes, check `expo-libsignal-dezire` and `libsignal-dezire` first.
+- **API changes**: If the server contract changes, check the `deezchatz-api` docs. The backend uses a dual-port architecture (3000 public, 3001 private).
+
 ## Project Overview
 
-KhamoshChat is a React Native mobile messaging app built with Expo SDK 57.
+DeezChatz is a React Native mobile messaging app built with Expo SDK 57.
 It uses the file-based routing system (`expo-router`) and integrates native Rust
 Signal protocol cryptography via the `expo-libsignal-dezire` package.
 
@@ -211,10 +233,16 @@ const keypair = await LibsignalDezireModule.genKeyPair();
 const signature = await LibsignalDezireModule.vxeddsaSign(key, message);
 ```
 
-   b. **Double Ratchet**: Ongoing messaging encryption
-      - Uses `RatchetSession` (TS) wrapping `expo-libsignal-dezire` (Rust FFI).
-      - Handles `ratchetInitSender`, `ratchetInitReceiver`, `ratchetEncrypt`, `ratchetDecrypt`.
-      - Manages opaque pointers to Rust `RatchetState` in native maps (`ratchetSessions`).
+For **Double Ratchet** (ongoing messaging encryption):
+- Uses `RatchetSession` (TS) wrapping `expo-libsignal-dezire` (Rust FFI).
+- Handles `ratchetInitSender`, `ratchetInitReceiver`, `ratchetEncrypt`, `ratchetDecrypt`.
+- Manages opaque pointers to Rust `RatchetState` in native maps (`ratchetSessions`).
+
+### Backend & Transport
+
+- Communicates with **DeezChatz API** (REST) on port 3000 for registration and key discovery.
+- Uses **RMQTT broker** over TLS for real-time messaging.
+- *Note*: The backend API has a private port 3001 used internally for offline webhooks. Mobile clients never communicate with port 3001.
 
 ### Expo Router
 
@@ -270,4 +298,4 @@ Automated unit tests are written with **Jest** and **React Native Testing Librar
 
 Automated Android APK builds are handled via GitHub Actions in `.github/workflows/build-android.yml`.
 - Runs local EAS builds on Ubuntu runners for releases or manual triggers (`workflow_dispatch`).
-- Outputs standalone `khamoshchat-*.apk` binaries attached to releases.
+- Outputs standalone `deezchatz-*.apk` binaries attached to releases.

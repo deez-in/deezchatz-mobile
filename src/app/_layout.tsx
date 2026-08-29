@@ -7,16 +7,13 @@ import { ThemeProvider, useTheme } from "@/src/hooks/useTheme";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
 import useMqtt, { processInboxRetries, processOutboxRetries } from "@/src/hooks/useMqtt";
 import {
-    openPrimaryDatabase,
-    reopenAllDatabases,
-    DatabaseKeyMismatchError,
-    pruneInbox,
-    pruneOutbox,
+  openPrimaryDatabase,
+  reopenAllDatabases,
+  DatabaseKeyMismatchError,
+  pruneInbox,
+  pruneOutbox,
 } from "@/src/utils/storage";
 import useNotifications from "@/src/hooks/useNotifications";
-
-// Ensures background task is registered before React mounts
-import "@/src/utils/notifications/background";
 
 // Set the animation options. This is optional.
 SplashScreen.setOptions({

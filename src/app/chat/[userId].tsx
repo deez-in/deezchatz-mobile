@@ -519,7 +519,7 @@ export default function Chat() {
       {isUserNotFound && (
         <View style={themedStyles.userNotFoundContainer}>
           <StyledText style={themedStyles.userNotFoundText}>
-            This Contact isn&apos;t using KhamoshChat yet.
+            This Contact isn&apos;t using Deez Chatz yet.
           </StyledText>
         </View>
       )}

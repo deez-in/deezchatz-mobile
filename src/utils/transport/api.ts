@@ -2,7 +2,7 @@ import LibsignalDezireModule from "expo-libsignal-dezire";
 import useSession from "@/src/store/useSession";
 import { toBase64, toBytes } from "@/src/utils/helpers/encoding";
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "https://kchat.dkmondal.in";
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "https://api.chatz.deez.in";
 
 type RequestOptions = {
   method?: string;

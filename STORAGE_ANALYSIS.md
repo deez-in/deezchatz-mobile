@@ -1,8 +1,8 @@
-# KhamoshChat — Data Storage Analysis
+# DeezChatz — Data Storage Analysis
 
 ## Overview
 
-KhamoshChat uses a **three-tier storage architecture**:
+DeezChatz uses a **three-tier storage architecture**:
 
 | Tier | Technology | Purpose | Encrypted? |
 |------|-----------|---------|------------|
@@ -124,7 +124,7 @@ CREATE TABLE chats (
 CREATE INDEX idx_chats_updated ON chats(updated_at DESC);
 ```
 
-**CRUD operations** ([chatList.ts](file:///Users/destiny/Important/code/khamoshchat-mobile/src/utils/storage/chatList.ts)):
+**CRUD operations** ([chatList.ts](file:///Users/destiny/Important/code/deezchatz-mobile/src/utils/storage/chatList.ts)):
 
 | Operation | Function | SQL |
 |-----------|----------|-----|
@@ -161,14 +161,14 @@ CREATE TABLE sessions (
 );
 ```
 
-**Messages CRUD** ([messages.ts](file:///Users/destiny/Important/code/khamoshchat-mobile/src/utils/storage/messages.ts)):
+**Messages CRUD** ([messages.ts](file:///Users/destiny/Important/code/deezchatz-mobile/src/utils/storage/messages.ts)):
 
 | Operation | Function | Details |
 |-----------|----------|---------|
 | Read | `getMessages(chatId)` | Opens DB if needed, reads all, closes if it wasn't open before |
 | Write | `saveMessage(chatId, { content, sender_id })` | Generates UUID, inserts, also calls `upsertChatThread` |
 
-**Session CRUD** ([chats.ts](file:///Users/destiny/Important/code/khamoshchat-mobile/src/utils/storage/chats.ts)):
+**Session CRUD** ([chats.ts](file:///Users/destiny/Important/code/deezchatz-mobile/src/utils/storage/chats.ts)):
 
 | Operation | Function | Details |
 |-----------|----------|---------|
@@ -188,7 +188,7 @@ type ChatSession = {
 
 ## 3. In-Memory Storage
 
-### 3.1 Ratchet Session Cache ([ratchet.ts](file:///Users/destiny/Important/code/khamoshchat-mobile/src/utils/crypto/ratchet.ts))
+### 3.1 Ratchet Session Cache ([ratchet.ts](file:///Users/destiny/Important/code/deezchatz-mobile/src/utils/crypto/ratchet.ts))
 
 ```typescript
 const sessionCache: Record<string, { uuid: string; identityKey: string }> = {};
@@ -213,14 +213,14 @@ persistSession(phone)
 > [!IMPORTANT]
 > Every encrypt/decrypt operation calls `persistSession` to ensure the ratchet state survives app restarts. This is correct but creates **heavy I/O on every message**.
 
-### 3.2 Database Connection Pool ([database.ts](file:///Users/destiny/Important/code/khamoshchat-mobile/src/utils/storage/database.ts))
+### 3.2 Database Connection Pool ([database.ts](file:///Users/destiny/Important/code/deezchatz-mobile/src/utils/storage/database.ts))
 
 ```typescript
 const activeDatabases = new Map<string, SQLite.SQLiteDatabase>();
 let primaryDb: SQLite.SQLiteDatabase | null = null;
 ```
 
-### 3.3 MQTT Store ([useMqttStore.ts](file:///Users/destiny/Important/code/khamoshchat-mobile/src/store/useMqttStore.ts))
+### 3.3 MQTT Store ([useMqttStore.ts](file:///Users/destiny/Important/code/deezchatz-mobile/src/store/useMqttStore.ts))
 
 Zustand store (**not persisted**):
 - `client` — MqttClient instance
@@ -321,7 +321,7 @@ sequenceDiagram
 
 #### 5.1 SQL Injection via PRAGMA key
 
-In [database.ts:34](file:///Users/destiny/Important/code/khamoshchat-mobile/src/utils/storage/database.ts#L34) and [L77](file:///Users/destiny/Important/code/khamoshchat-mobile/src/utils/storage/database.ts#L77):
+In [database.ts:34](file:///Users/destiny/Important/code/deezchatz-mobile/src/utils/storage/database.ts#L34) and [L77](file:///Users/destiny/Important/code/deezchatz-mobile/src/utils/storage/database.ts#L77):
 
 ```typescript
 await db.execAsync(`PRAGMA key = '${key}';`);  // ⚠️ String interpolation
@@ -338,7 +338,7 @@ While `key` is currently a hex string generated internally, this is a **dangerou
 
 #### 5.2 Hardcoded MQTT Credentials
 
-In [useMqtt.ts:94](file:///Users/destiny/Important/code/khamoshchat-mobile/src/hooks/useMqtt.ts#L94):
+In [useMqtt.ts:94](file:///Users/destiny/Important/code/deezchatz-mobile/src/hooks/useMqtt.ts#L94):
 
 ```typescript
 await MqttClient.connect(url, "dezire", "test1234", { ... });
@@ -378,7 +378,7 @@ Every `encryptMessage()` and `decryptMessage()` call triggers `persistSession()`
 
 #### 5.6 `getMessages()` Opens & Closes DB When Not Already Open
 
-In [messages.ts:49-64](file:///Users/destiny/Important/code/khamoshchat-mobile/src/utils/storage/messages.ts#L49-L64):
+In [messages.ts:49-64](file:///Users/destiny/Important/code/deezchatz-mobile/src/utils/storage/messages.ts#L49-L64):
 
 ```typescript
 const wasOpen = isDatabaseOpen(chatId);
@@ -394,7 +394,7 @@ This is fine for one-off reads but creates overhead when called in quick success
 
 #### 5.7 Chat List Pub/Sub Uses Array-Based Listeners
 
-The listener pattern in [chatList.ts](file:///Users/destiny/Important/code/khamoshchat-mobile/src/utils/storage/chatList.ts#L24-L35) accumulates listeners in an array. If a component subscribes but the cleanup function doesn't fire (e.g., hot reload), listeners leak.
+The listener pattern in [chatList.ts](file:///Users/destiny/Important/code/deezchatz-mobile/src/utils/storage/chatList.ts#L24-L35) accumulates listeners in an array. If a component subscribes but the cleanup function doesn't fire (e.g., hot reload), listeners leak.
 
 **Suggestion:** Use a `Set` instead, and consider adding a `WeakRef`-based mechanism or React's `useSyncExternalStore` pattern for safer integration.
 

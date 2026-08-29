@@ -1,16 +1,16 @@
 import type { ExpoConfig } from "expo/config";
 
 const config: ExpoConfig = {
-  name: "khamoshchat",
-  slug: "khamoshchat",
-  version: "1.0.0",
+  name: "DeezChatz",
+  slug: "deezchatz",
+  version: "0.5.0",
   orientation: "portrait",
-  icon: "./src/assets/images/icon.png",
-  scheme: "khamoshchat",
+  icon: "./src/assets/images/icon.icon",
+  scheme: "deezchatz",
   userInterfaceStyle: "automatic",
   ios: {
     supportsTablet: true,
-    bundleIdentifier: "in.dkmondal.kchat",
+    bundleIdentifier: "in.deez.chatz",
     infoPlist: {
       UIBackgroundModes: ["remote-notification"],
     },
@@ -19,16 +19,11 @@ const config: ExpoConfig = {
     adaptiveIcon: {
       backgroundColor: "#E6F4FE",
       foregroundImage: "./src/assets/images/android-icon-foreground.png",
-      backgroundImage: "./src/assets/images/android-icon-background.png",
       monochromeImage: "./src/assets/images/android-icon-monochrome.png",
     },
     predictiveBackGestureEnabled: true,
-    package: "in.dkmondal.kchat",
-    permissions: [
-      "android.permission.READ_CONTACTS",
-      "android.permission.WRITE_CONTACTS",
-    ],
-    googleServicesFile: "./google-services.json", // TODO: SETUP REQUIRED - Place google-services.json in root directory
+    package: "in.deez.chatz",
+    googleServicesFile: "./google-services.json",
   },
   web: {
     output: "static",
@@ -41,7 +36,7 @@ const config: ExpoConfig = {
       "expo-notifications",
       {
         icon: "./src/assets/images/icon.png",
-        color: "#FFCC00", 
+        color: "#FFCC00",
         androidMode: "default",
       },
     ],
@@ -95,10 +90,10 @@ const config: ExpoConfig = {
   extra: {
     router: {},
     eas: {
-      projectId: "11605f69-16d6-472c-85a4-157fb733b573",
+      projectId: "c7714ca8-54f2-4568-8335-6b88a9aaac52",
     },
   },
-  owner: "khamoshi-org",
+  owner: "deez-in",
 };
 
 export default config;

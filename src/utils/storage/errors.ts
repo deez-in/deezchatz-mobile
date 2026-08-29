@@ -107,7 +107,7 @@ export class BundleFetchError extends StorageError {
 }
 
 /**
- * The recipient is not registered on KhamoshChat (server returned 404 for bundle).
+ * The recipient is not registered on Deez Chatz (server returned 404 for bundle).
  * NOT recoverable — user must be invited or register.
  */
 export class UserNotFoundError extends StorageError {
@@ -116,7 +116,7 @@ export class UserNotFoundError extends StorageError {
     constructor(recipient: string, cause?: unknown) {
         super(
             'USER_NOT_FOUND',
-            `Requested user "${recipient}" is not using KhamoshChat.`,
+            `Requested user "${recipient}" is not using Deez Chatz.`,
             false
         );
         this.name = 'UserNotFoundError';

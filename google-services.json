@@ -1,56 +1,48 @@
 {
   "project_info": {
-    "project_number": "822771804895",
-    "project_id": "khamoshchat",
-    "storage_bucket": "khamoshchat.firebasestorage.app"
+    "project_number": "715076094331",
+    "project_id": "deezchatz",
+    "storage_bucket": "deezchatz.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:822771804895:android:867b09450affa01211176a",
+        "mobilesdk_app_id": "1:715076094331:android:588f99819bd827b16755de",
         "android_client_info": {
-          "package_name": "in.dkmondal.kchat"
+          "package_name": "in.deez.chatz"
         }
       },
       "oauth_client": [
         {
-          "client_id": "822771804895-n06s69kg6kbrq6vso968v9l699k1sgfc.apps.googleusercontent.com",
+          "client_id": "715076094331-1mp3d22vos3jlsg2g9vnn4chc03d0hvn.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "in.dkmondal.kchat",
+            "package_name": "in.deez.chatz",
             "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
           }
         },
         {
-          "client_id": "822771804895-pnvb74ooamf0nabiio9p2ud9ibsb96r5.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "in.dkmondal.kchat",
-            "certificate_hash": "de93bae55ef2a4fcdb6df3073333e78b23a13cc8"
-          }
-        },
-        {
-          "client_id": "822771804895-blggkiescmpvk1qp3qc0vdj2jdtel8lg.apps.googleusercontent.com",
+          "client_id": "715076094331-7mtbcp2hvd382r645ss6tsri18ekk6om.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyCNB5qJHLXwKB1tXPcogJZHs72XL87rzv0"
+          "current_key": "AIzaSyAmPhOtCAeOaXxz4aRl7N1DfzQdR8y8cJ0"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "822771804895-blggkiescmpvk1qp3qc0vdj2jdtel8lg.apps.googleusercontent.com",
+              "client_id": "715076094331-7mtbcp2hvd382r645ss6tsri18ekk6om.apps.googleusercontent.com",
               "client_type": 3
             },
             {
-              "client_id": "822771804895-gn22q3ah6hp7n9mm4v2mcks1345kaiij.apps.googleusercontent.com",
+              "client_id": "715076094331-oi6ismvp5s89vr2mh7sus5iac21ndoeo.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "in.dkmondal.kchat"
+                "bundle_id": "in.deez.chatz"
               }
             }
           ]

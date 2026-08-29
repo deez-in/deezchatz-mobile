@@ -28,7 +28,8 @@ export type Session = {
   pushTokenRegistered: boolean;
   setPushToken: (token: string | null) => void;
   setPushTokenRegistered: (registered: boolean) => void;
-  initSession: (phone: PhoneIdentity) => Promise<{ iKey: Uint8Array; preKey: Uint8Array; devKey: Uint8Array }>;
+  initIdentityKey: () => Promise<Uint8Array>;
+  initDeviceKeys: (phone: PhoneIdentity) => Promise<{ preKey: Uint8Array; devKey: Uint8Array }>;
   clearSession: () => Promise<void>;
   markDeviceRegistered: (deviceId: string) => void;
   setAuthenticatedUser: (payload: {
@@ -100,35 +101,25 @@ const useSession = create(
           devKey: new Uint8Array(),
         });
       },
-      initSession: async (phone) => {
-        await deleteItemAsync("opks");
+      initIdentityKey: async () => {
         const iKey = await LibsignalDezireModule.genSecret();
+        if (!iKey) {
+          Alert.alert("Error", "Couldn't initialize identity key", [{ text: "OK", style: "cancel" }]);
+          return new Uint8Array();
+        }
+        set({ iKey });
+        return iKey;
+      },
+      initDeviceKeys: async (phone) => {
+        await deleteItemAsync("opks");
         const preKey = await LibsignalDezireModule.genSecret();
         const devKey = await LibsignalDezireModule.genSecret();
-        if (!iKey || !preKey || !devKey) {
-          Alert.alert(
-            "Error",
-            "Something wrong happened. Couldn't initialize session",
-            [
-              {
-                text: "OK",
-                style: "cancel",
-              },
-            ],
-          );
+        if (!preKey || !devKey) {
+          Alert.alert("Error", "Couldn't initialize device keys", [{ text: "OK", style: "cancel" }]);
         } else {
-          set({
-            phone,
-            iKey,
-            preKey,
-            devKey,
-          });
+          set({ phone, preKey, devKey });
         }
-        return {
-          iKey,
-          preKey,
-          devKey,
-        };
+        return { preKey, devKey };
       },
     }),
     {
@@ -146,15 +137,21 @@ const useSession = create(
         } as Session;
 
         if (merged.iKey && !(merged.iKey instanceof Uint8Array)) {
-          merged.iKey = new Uint8Array(Object.values(merged.iKey));
+          merged.iKey = Array.isArray(Object.values(merged.iKey)) 
+            ? new Uint8Array(Object.values(merged.iKey)) 
+            : new Uint8Array();
         }
 
         if (merged.preKey && !(merged.preKey instanceof Uint8Array)) {
-          merged.preKey = new Uint8Array(Object.values(merged.preKey));
+          merged.preKey = Array.isArray(Object.values(merged.preKey))
+            ? new Uint8Array(Object.values(merged.preKey))
+            : new Uint8Array();
         }
 
         if (merged.devKey && !(merged.devKey instanceof Uint8Array)) {
-          merged.devKey = new Uint8Array(Object.values(merged.devKey));
+          merged.devKey = Array.isArray(Object.values(merged.devKey))
+            ? new Uint8Array(Object.values(merged.devKey))
+            : new Uint8Array();
         } else if (!merged.devKey) {
           merged.devKey = new Uint8Array();
         }

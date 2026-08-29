@@ -2,6 +2,7 @@
 import MqttClient from "expo-native-mqtt";
 import { useEffect } from "react";
 import { Alert } from "react-native";
+import { fromBase64, toString } from "@/src/utils/helpers/encoding";
 import useMqttStore from "@/src/store/useMqttStore";
 import useSession, { Session } from "@/src/store/useSession";
 import { processIncomingMessage } from "@/src/utils/messaging";
@@ -122,10 +123,11 @@ export async function processOutboxRetries(): Promise<void> {
 const useMqtt = (topic: string) => {
     const setClient = useMqttStore(s => s.setClient);
     const setConnected = useMqttStore(s => s.setConnected);
-    const session = useSession();
+    const userId = useSession(s => s.userId);
+    const deviceId = useSession(s => s.deviceId);
 
     useEffect(() => {
-        if (!topic) return;
+        if (!topic || !userId || !deviceId) return;
 
         let subscriptions: { remove: () => void }[] = [];
 
@@ -136,14 +138,18 @@ const useMqtt = (topic: string) => {
                 //    broker will never redeliver if our processing fails.
                 const messageSub = MqttClient.addListener(
                     "onMqttMessageReceived",
-                    async (data: { topic: string; payload: string }) => {
+                    async (data: { topic: string; payloadBase64: string }) => {
                         let inboxId: number | null = null;
                         try {
+                            const payloadBytes = fromBase64(data.payloadBase64);
+                            const payloadStr = toString(payloadBytes);
+
                             // Step 1: Save raw ciphertext to inbox (fast, no crypto)
-                            inboxId = await saveToInbox(data.topic, data.payload);
+                            inboxId = await saveToInbox(data.topic, payloadStr);
 
                             // Step 2: Attempt full processing
-                            await processIncomingMessage(session, data.topic, data.payload);
+                            const session = useSession.getState();
+                            await processIncomingMessage(session, data.topic, payloadStr);
 
                             // Step 3: Mark as done
                             await markInboxProcessed(inboxId);
@@ -161,7 +167,7 @@ const useMqtt = (topic: string) => {
                     console.debug(`Connected to MQTT broker for topic: ${topic}`);
                     setConnected(true);
 
-                    const topicPath = `/khamoshchat/${session.userId}/${session.deviceId}/#`;
+                    const topicPath = `/deezchatz/${userId}/${deviceId}/#`;
                     try {
                         await MqttClient.subscribe(topicPath, 1);
                         console.debug(`Subscribed to ${topicPath}`);
@@ -186,7 +192,7 @@ const useMqtt = (topic: string) => {
                 subscriptions.push(errorSub);
 
                 // 3. Connect
-                const clientId = `khamoshchat-${session.userId}-${session.deviceId}`;
+                const clientId = `deezchatz-${userId}-${deviceId}`;
                 await MqttClient.connect(
                     `${process.env.EXPO_PUBLIC_MQTT_URL}`,
                     "dezire",
@@ -218,7 +224,7 @@ const useMqtt = (topic: string) => {
             setConnected(false);
             setClient(undefined);
         };
-    }, [topic, session, setClient, setConnected]);
+    }, [topic, userId, deviceId, setClient, setConnected]);
 };
 
 export default useMqtt;
