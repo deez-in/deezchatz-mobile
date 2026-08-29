@@ -13,12 +13,13 @@ export default function Verify() {
   const params = useLocalSearchParams<{
     token: string;
     userId: string;
+    stateToken: string;
     email: string;
     displayName: string;
     avatarUrl: string;
   }>();
 
-  const { token, userId, email, displayName, avatarUrl } = params;
+  const { token, userId, stateToken, email, displayName, avatarUrl } = params;
 
 
   const [isLoading, setIsLoading] = useState(false);
@@ -41,7 +42,7 @@ export default function Verify() {
     setIsLoading(true);
     try {
       const session = useSession.getState();
-      const deviceId = await registerDevice(userId as string, { countryCode, number: Number(phoneNumber) });
+      const deviceId = await registerDevice(stateToken as string, { countryCode, number: Number(phoneNumber) });
       session.markDeviceRegistered(deviceId);
 
       router.replace("/");

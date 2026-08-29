@@ -3,7 +3,7 @@ import type { ExpoConfig } from "expo/config";
 const config: ExpoConfig = {
   name: "DeezChatz",
   slug: "deezchatz",
-  version: "1.0.0",
+  version: "0.5.0",
   orientation: "portrait",
   icon: "./src/assets/images/icon.png",
   scheme: "deezchatz",

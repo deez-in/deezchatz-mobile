@@ -56,6 +56,7 @@ export default function Register() {
         params: {
           token: user.token,
           userId: phase1.userId,
+          stateToken: phase1.state,
           email: user.email || "",
           displayName: user.displayName || "",
           avatarUrl: user.avatarUrl || "",

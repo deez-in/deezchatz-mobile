@@ -65,6 +65,11 @@ export async function x3dhInitiator(
     session: Session,
     preKeyBundle: PreKeyBundle
 ): Promise<{ sharedSecret: Uint8Array; ephemeralKey: Uint8Array }> {
+    // TODO(security): The backend currently doesn't return spkId in the PreKeyBundle.
+    // We are hardcoding it to 1, which will cause X3DH to fail if Bob rotates his Signed PreKey.
+    // This must be fixed in the backend API and the PreKeyBundle interface.
+    console.warn("WARNING: Hardcoded SPK ID = 1 in x3dhInitiator. This will break upon key rotation!");
+
     const hasOpk = true;
     const bobBundle = serializeBobBundle(
         fromBase64(preKeyBundle.identityKey),

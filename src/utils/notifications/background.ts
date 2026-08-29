@@ -7,15 +7,9 @@ import { showMessageNotification } from './local';
 
 export const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND-NOTIFICATION-TASK';
 
-/**
- * Registering background tasks must happen synchronously outside a React component.
- * We register with Notifications.registerTaskAsync at module scope to ensure native
- * background push receivers can immediately route headless executions to this handler.
- */
-Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK).catch((e) => {
-  console.debug('[Background Task] Register task status:', e?.message || e);
-});
-
+// Registering background tasks must happen synchronously outside a React component.
+// We register with Notifications.registerTaskAsync at module scope to ensure native
+// background push receivers can immediately route headless executions to this handler.
 TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error, executionInfo }) => {
   if (error) {
     console.error(`[Background Task] ${BACKGROUND_NOTIFICATION_TASK} error:`, error);
@@ -64,7 +58,19 @@ TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error, execu
       return;
     }
 
-    const session = useSession.getState() as Session;
+    let session = useSession.getState() as Session;
+    const store = useSession as any;
+    
+    // In headless tasks, Zustand storage hydration might be pending
+    if (store.persist && !store.persist.hasHydrated()) {
+      await new Promise<void>((resolve) => {
+        const unsub = store.persist.onFinishHydration(() => {
+          resolve();
+          unsub();
+        });
+      });
+      session = useSession.getState() as Session;
+    }
 
     if (!session || !session.iKey || session.iKey.length === 0) {
       await showMessageNotification(displaySender, 'New message', {
@@ -100,3 +106,7 @@ TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error, execu
   }
 });
 
+// Register AFTER task definition as per Expo documentation
+Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK).catch((e) => {
+  console.debug('[Background Task] Register task status:', e?.message || e);
+});
