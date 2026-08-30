@@ -65,6 +65,14 @@ export async function markInboxProcessed(id: number): Promise<void> {
     );
 }
 
+/**
+ * Deletes an inbox entry by id (e.g. if the message sender is blocked).
+ */
+export async function deleteFromInbox(id: number): Promise<void> {
+    const db = await openPrimaryDatabase();
+    await db.runAsync('DELETE FROM inbox WHERE id = ?', id);
+}
+
 
 /**
  * Increments the retry counter for a pending entry.

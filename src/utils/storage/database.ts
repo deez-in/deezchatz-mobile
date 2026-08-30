@@ -125,12 +125,11 @@ export async function openChatDatabase(chatId: string): Promise<SQLite.SQLiteDat
 export async function closeChatDatabase(chatId: string): Promise<void> {
     const db = activeDatabases.get(chatId);
     if (db) {
+        activeDatabases.delete(chatId);
         try {
             await db.closeAsync();
         } catch (e) {
             console.warn(`Failed to close database for chat ${chatId}`, e);
-        } finally {
-            activeDatabases.delete(chatId);
         }
     }
 }
@@ -286,6 +285,7 @@ async function migrateDatabase(db: SQLite.SQLiteDatabase): Promise<void> {
             content TEXT,
             sender_id TEXT NOT NULL,
             created_at INTEGER NOT NULL,
+            received_at INTEGER,
             status TEXT DEFAULT 'sent'
         );
 
@@ -301,6 +301,11 @@ async function migrateDatabase(db: SQLite.SQLiteDatabase): Promise<void> {
     // Self-healing: add type column to messages table if it doesn't exist
     try {
         await db.execAsync("ALTER TABLE messages ADD COLUMN type TEXT DEFAULT 'message';");
+    } catch {}
+
+    // Self-healing: add received_at column to messages table if it doesn't exist
+    try {
+        await db.execAsync("ALTER TABLE messages ADD COLUMN received_at INTEGER;");
     } catch {}
 
     await db.execAsync('PRAGMA user_version = 1;');
@@ -387,6 +392,11 @@ async function migratePrimaryDatabase(db: SQLite.SQLiteDatabase): Promise<void> 
     } catch {}
     try {
         await db.execAsync('ALTER TABLE contacts ADD COLUMN last_synced_at INTEGER;');
+    } catch {}
+
+    // Self-healing: add blocked column to contacts table if it doesn't exist
+    try {
+        await db.execAsync('ALTER TABLE contacts ADD COLUMN blocked INTEGER DEFAULT 0;');
     } catch {}
 
     await db.execAsync('PRAGMA user_version = 1;');

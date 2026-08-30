@@ -87,6 +87,11 @@ export function getColors(scheme?: "light" | "dark" | null) {
       android: Color.android.dynamic.error,
       default: isDark ? "#FF453A" : "#FF3B30",
     }),
+    onError: Platform.select({
+      ios: "#FFFFFF",
+      android: Color.android.dynamic.onError,
+      default: "#FFFFFF",
+    }),
     info: Platform.select({
       ios: Color.ios.systemTeal,
       android: isDark ? "#4DD0E1" : "#00ACC1",
