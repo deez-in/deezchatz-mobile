@@ -187,7 +187,7 @@ export async function sendInitialMessage({
     const payload = {
         identityKey: toBase64(senderIdentityPub),
         ephemeralKey: toBase64(ephemeralKey),
-        spkId: 1,
+        spkId: preKeyBundle.spkId ?? 1,
         opkId: preKeyBundle.opk?.id ?? null,
         ciphertext: toBase64(ciphertext.ciphertext),
         header: toBase64(ciphertext.header),

@@ -19,6 +19,7 @@ import StyledButton from "@/src/components/StyledButton";
 import { ContactAvatar } from "@/src/components/ContactAvatar";
 import DeleteAccountSheet from "@/src/components/DeleteAccountSheet";
 import { deleteAccount } from "@/src/utils/api/deleteAccount";
+import { wipeAllDatabases } from "@/src/utils/storage";
 
 export default function ProfileScreen() {
   const { colors } = useTheme();
@@ -45,7 +46,14 @@ export default function ProfileScreen() {
         console.warn("[Profile] API delete account encountered error:", apiError);
       }
 
-      // 2. Clear local session & authentication state
+      // 2. Wipe local SQLite databases & storage
+      try {
+        await wipeAllDatabases();
+      } catch (dbError) {
+        console.warn("[Profile] Failed to wipe local databases:", dbError);
+      }
+
+      // 3. Clear local session & authentication state
       await session.clearSession();
       setShowDeleteSheet(false);
     } catch (error) {

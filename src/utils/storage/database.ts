@@ -5,7 +5,7 @@
 
 import * as SQLite from 'expo-sqlite';
 import { Paths } from 'expo-file-system';
-import { getOrCreateDatabaseCredentials } from './keys';
+import { getOrCreateDatabaseCredentials, deleteDatabaseCredentials } from './keys';
 import {
     DatabaseKeyMismatchError,
     DatabaseCorruptedError,
@@ -272,6 +272,35 @@ export async function reopenAllDatabases(): Promise<void> {
             activeDatabases.delete(chatId);
         }
     }
+}
+
+/**
+ * Closes and wipes all local SQLite database instances and deletes credentials on account deletion.
+ */
+export async function wipeAllDatabases(): Promise<void> {
+    // Clear and close all per-chat databases
+    for (const [chatId, db] of activeDatabases.entries()) {
+        try {
+            await db.execAsync('DELETE FROM messages; DELETE FROM sessions;');
+            await db.closeAsync();
+        } catch (e) {
+            console.warn(`Failed to wipe/close chat DB for ${chatId}:`, e);
+        }
+        await deleteDatabaseCredentials(chatId).catch(() => {});
+    }
+    activeDatabases.clear();
+
+    // Clear and close primary database
+    if (primaryDb) {
+        try {
+            await primaryDb.execAsync('DELETE FROM chats; DELETE FROM inbox; DELETE FROM outbox; DELETE FROM contacts;');
+            await primaryDb.closeAsync();
+        } catch (e) {
+            console.warn('Failed to wipe/close primary DB:', e);
+        }
+        primaryDb = null;
+    }
+    await deleteDatabaseCredentials(PRIMARY_CHAT_ID).catch(() => {});
 }
 
 // ---------------------------------------------------------------------------

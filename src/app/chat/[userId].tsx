@@ -45,8 +45,10 @@ import {
   getIdentityKey,
   getDeviceId,
   loadRatchetSession,
-  clearSession
+  clearSession,
+  PreKeyBundle,
 } from "@/src/utils/crypto";
+import { apiRequest } from "@/src/utils/transport/api";
 import { withRetry, BailoutError } from "@/src/utils/helpers/retry";
 
 
@@ -395,14 +397,48 @@ export default function Chat() {
     if (!targetId) return;
 
     await blockContact(targetId);
+    if (resolvedUUID && resolvedUUID !== targetId) {
+      await blockContact(resolvedUUID);
+    }
     setIsBlocked(true);
 
     if (shouldReport) {
       try {
-        await reportUser(targetId, chatMessages);
+        let reportTargetUUID: string | null | undefined = resolvedUUID;
+        if (!reportTargetUUID) {
+          const isPhone = userId.startsWith("+") || /^\d+$/.test(userId);
+          if (isPhone) {
+            reportTargetUUID = await getContactByPhone(userId);
+          } else {
+            reportTargetUUID = userId;
+          }
+        }
+
+        if (!reportTargetUUID) {
+          try {
+            const bundle = await apiRequest<PreKeyBundle>(
+              `/bundle/${encodeURIComponent(userId)}`,
+              { method: "POST", authenticated: true }
+            );
+            if (bundle?.userId) {
+              reportTargetUUID = bundle.userId;
+              setResolvedUUID(bundle.userId);
+            }
+          } catch (e) {
+            console.warn("Could not fetch bundle to resolve UUID for report:", e);
+          }
+        }
+
+        if (!reportTargetUUID) {
+          Alert.alert("Report Failed", "Could not resolve user ID to submit report.");
+          return;
+        }
+
+        await reportUser(reportTargetUUID, chatMessages);
         Alert.alert("Report Submitted", "Thank you for reporting. Our team will review the messages.");
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to report user:", err);
+        Alert.alert("Report Failed", err?.message || "Failed to submit report. Please try again.");
       }
     }
   };

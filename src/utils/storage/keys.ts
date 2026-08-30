@@ -57,3 +57,12 @@ export async function getOrCreateDatabaseCredentials(chatId: string): Promise<Da
     return credentials;
 }
 
+/**
+ * Deletes database credentials from SecureStore for a chat.
+ */
+export async function deleteDatabaseCredentials(chatId: string): Promise<void> {
+    const safeChatId = sanitizeChatId(chatId);
+    const alias = `chat_creds_${safeChatId}`;
+    await SecureStore.deleteItemAsync(alias);
+}
+

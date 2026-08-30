@@ -12,6 +12,7 @@ export type PreKeyBundle = {
     phone: string;
     deviceId: string;
     identityKey: string;
+    spkId?: number;
     signature: string;
     signedPreKey: string;
     opk?: {
@@ -24,6 +25,7 @@ export type PreKeyBundle = {
 export type X3DHBundle = {
     identityKey: string;
     ephemeralKey: string;
+    spkId?: number | null;
     opkId?: number | null;
 };
 
@@ -68,7 +70,7 @@ export async function x3dhInitiator(
     const hasOpk = Boolean(preKeyBundle.opk && preKeyBundle.opk.key);
     const bobBundle = serializeBobBundle(
         fromBase64(preKeyBundle.identityKey),
-        1, // spkId - hardcoded for now
+        preKeyBundle.spkId ?? 1,
         fromBase64(preKeyBundle.signedPreKey),
         fromBase64(preKeyBundle.signature),
         hasOpk && preKeyBundle.opk ? preKeyBundle.opk.id : 0,
