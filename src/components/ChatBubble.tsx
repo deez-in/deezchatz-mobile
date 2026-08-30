@@ -118,6 +118,9 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
     }
 
     const statusIcon = isMe ? getStatusIcon(message.status, themedStyles) : null;
+    const displayTimestamp = isMe
+        ? message.created_at
+        : (message.received_at ?? message.created_at);
 
     return (
         <View style={isMe ? themedStyles.sentBubble : themedStyles.receivedBubble}>
@@ -126,7 +129,7 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
             </StyledText>
             <View style={themedStyles.timestampRow}>
                 <StyledText style={isMe ? themedStyles.timestampSent : themedStyles.timestampReceived}>
-                    {formatMessageTime(message.created_at)}
+                    {formatMessageTime(displayTimestamp)}
                 </StyledText>
                 {statusIcon}
             </View>

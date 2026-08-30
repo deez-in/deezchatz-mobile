@@ -9,6 +9,7 @@ import { processIncomingMessage } from "@/src/utils/messaging";
 import {
     saveToInbox,
     markInboxProcessed,
+    deleteFromInbox,
     incrementInboxRetry,
     getPendingInboxEntries,
     getPendingOutboxEntries,
@@ -17,6 +18,7 @@ import {
     incrementOutboxRetry,
     updateMessageStatusWithAutoOpen,
     StorageError,
+    BlockedContactError,
 } from "@/src/utils/storage";
 import { publishMessage } from "@/src/utils/transport/mqtt";
 
@@ -32,6 +34,11 @@ async function processInboxEntry(
         await processIncomingMessage(session, entry.topic, entry.payload);
         await markInboxProcessed(entry.id);
     } catch (e) {
+        if (e instanceof BlockedContactError) {
+            console.debug(`[Inbox] Dropping message from blocked sender in inbox entry ${entry.id}`);
+            await deleteFromInbox(entry.id).catch(() => {});
+            return;
+        }
         console.error(`Failed to process inbox entry ${entry.id}:`, e);
         await incrementInboxRetry(entry.id);
     }
@@ -154,6 +161,13 @@ const useMqtt = (topic: string) => {
                             // Step 3: Mark as done
                             await markInboxProcessed(inboxId);
                         } catch (e) {
+                            if (e instanceof BlockedContactError) {
+                                console.debug('[MQTT] Dropping and deleting message from blocked sender');
+                                if (inboxId !== null) {
+                                    await deleteFromInbox(inboxId).catch(() => {});
+                                }
+                                return;
+                            }
                             console.error("Failed to process MQTT message:", e);
                             // Entry stays 'pending' in inbox — will be retried on next
                             // app foreground via processInboxRetries()

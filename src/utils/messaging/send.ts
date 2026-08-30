@@ -182,14 +182,16 @@ export async function sendInitialMessage({
     }
 
     // 6. Build payload
+    const now = Date.now();
     const senderIdentityPub = await LibsignalDezireModule.genPubKey(session.iKey);
     const payload = {
         identityKey: toBase64(senderIdentityPub),
         ephemeralKey: toBase64(ephemeralKey),
         spkId: 1,
-        opkId: preKeyBundle.opk.id,
+        opkId: preKeyBundle.opk?.id ?? null,
         ciphertext: toBase64(ciphertext.ciphertext),
         header: toBase64(ciphertext.header),
+        timestamp: now,
     };
     const payloadStr = JSON.stringify(payload);
 
@@ -223,6 +225,7 @@ export async function sendInitialMessage({
             content: message,
             sender_id: 'me',
             status: 'sent',
+            created_at: now,
         });
 
         // Save to outbox directly as 'sent'
@@ -269,9 +272,11 @@ export async function sendMessage({
     }
 
     // 2. Build payload
+    const now = Date.now();
     const payload = {
         ciphertext: toBase64(ciphertext.ciphertext),
         header: toBase64(ciphertext.header),
+        timestamp: now,
     };
     const payloadStr = JSON.stringify(payload);
 
@@ -287,6 +292,7 @@ export async function sendMessage({
             content: message,
             sender_id: 'me',
             status: 'pending',
+            created_at: now,
         });
         outboxId = await saveToOutbox(recipientUserId, messageId, topic, payloadStr);
     } catch (e) {

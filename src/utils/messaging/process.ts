@@ -7,7 +7,7 @@ import { Session } from '@/src/store/useSession';
 import { X3DHBundle, initReceiver, decryptMessage, getIdentityKey, PreKeyBundle } from '@/src/utils/crypto';
 import { receiveInitialMessage, receiveMessage } from './receive';
 import { apiRequest } from '../transport/api';
-import { saveContact, upsertChatThread, updateContactBundle, saveSystemMessage } from '../storage';
+import { saveContact, upsertChatThread, updateContactBundle, saveSystemMessage, saveMessageWithAutoOpen, isContactBlocked, BlockedContactError } from '../storage';
 import { syncDeviceContacts } from '../sync/contactSync';
 
 /**
@@ -22,7 +22,8 @@ export async function processIncomingMessage(
     rawPayload: string
 ): Promise<string> {
     const parsed = JSON.parse(rawPayload);
-    const payload = parsed as X3DHBundle & { ciphertext: string; header: string };
+    const payload = parsed as X3DHBundle & { ciphertext: string; header: string; timestamp?: number };
+    const received_at = Date.now();
 
     // Extract sender from topic: /deezchatz/{recipientId}/{recipientDeviceId}/{senderId}/{senderDeviceId}
     const topicParts = topic.split('/');
@@ -34,7 +35,12 @@ export async function processIncomingMessage(
         throw new Error(`Could not extract sender info from topic: ${topic}`);
     }
 
-    if (payload.identityKey && payload.ephemeralKey && payload.opkId !== undefined) {
+    // Step 1: Check blocklist before doing any decryption or bundle fetching
+    if (await isContactBlocked(senderUserId)) {
+        throw new BlockedContactError(senderUserId);
+    }
+
+    if (payload.identityKey && payload.ephemeralKey) {
         // Initial message — full X3DH handshake
         if (!session.isAuthenticated) {
             throw new Error('Session not registered, cannot process initial message');
@@ -87,6 +93,14 @@ export async function processIncomingMessage(
             console.warn('[Process] Failed to update contact bundle for incoming message:', err);
         }
 
+        const senderTimestamp = typeof payload.timestamp === 'number' ? payload.timestamp : received_at;
+        await saveMessageWithAutoOpen(senderUserId, {
+            content: result.plaintext,
+            sender_id: senderUserId,
+            created_at: senderTimestamp,
+            received_at: received_at,
+        });
+
         return result.plaintext;
     } 
     
@@ -109,6 +123,15 @@ export async function processIncomingMessage(
         if (!result) {
             throw new Error(`Failed to decrypt subsequent message from ${senderUserId}`);
         }
+
+        const senderTimestamp = typeof payload.timestamp === 'number' ? payload.timestamp : received_at;
+        await saveMessageWithAutoOpen(senderUserId, {
+            content: result.plaintext,
+            sender_id: senderUserId,
+            created_at: senderTimestamp,
+            received_at: received_at,
+        });
+
         return result.plaintext;
     } 
     
