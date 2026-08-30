@@ -27,6 +27,9 @@ const buttonStylesFactory = (colors: ThemeColors) => ({
     opacity: 0.9,
     transform: [{ scale: 0.97 }],
   },
+  disabled: {
+    opacity: 0.45,
+  },
   link: {
     backgroundColor: "transparent",
   },
@@ -47,24 +50,26 @@ const buttonStylesFactory = (colors: ThemeColors) => ({
 
 const StyledButton = ({
   style,
-
   variant = "default",
   children,
+  disabled,
   ...restProps
 }: StyledButtonProps) => {
   const styles = useThemedStyles(buttonStylesFactory);
 
   return (
     <Pressable
+      disabled={disabled}
       android_ripple={
-        variant === "default"
+        variant === "default" && !disabled
           ? { color: "#00000020" }  // Use string color; PlatformColor values don't work with android_ripple
           : undefined
       }
       style={({ pressed }) => [
         styles.base,
         variant === "link" ? styles.link : styles.default,
-        pressed && (variant === "link" ? styles.pressedLink : styles.pressedDefault),
+        pressed && !disabled && (variant === "link" ? styles.pressedLink : styles.pressedDefault),
+        disabled && styles.disabled,
         style,
       ]}
       {...restProps}
