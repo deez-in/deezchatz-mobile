@@ -3,7 +3,7 @@
  * Fetches contacts from the device's address book.
  */
 
-import { Contact, ContactField, ContactsSortOrder, requestPermissionsAsync } from "expo-contacts";
+import { Contact, ContactField, ContactsSortOrder, getPermissionsAsync, requestPermissionsAsync, PermissionStatus } from "expo-contacts";
 
 export type SplitContact = {
     id: string;
@@ -12,6 +12,16 @@ export type SplitContact = {
     label: string;
     number: string;
 };
+
+export async function getContactsPermissionStatus(): Promise<PermissionStatus> {
+    const { status } = await getPermissionsAsync();
+    return status;
+}
+
+export async function requestContactsPermission(): Promise<PermissionStatus> {
+    const { status } = await requestPermissionsAsync();
+    return status;
+}
 
 /**
  * Fetches contacts from the device with phone numbers split into separate entries.
