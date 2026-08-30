@@ -19,15 +19,7 @@ export default function TabLayout() {
     >
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Chats</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="person" md="person_outline" />
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="groups">
-        <NativeTabs.Trigger.Icon sf="person.2" md="group" />
-        <NativeTabs.Trigger.Label>Groups</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="calls">
-        <NativeTabs.Trigger.Icon sf="phone" md="call" />
-        <NativeTabs.Trigger.Label>Calls</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="message" md="chat" />
       </NativeTabs.Trigger>
     </NativeTabs>
   );

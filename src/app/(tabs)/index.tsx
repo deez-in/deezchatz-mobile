@@ -11,10 +11,12 @@ import StyledTextInput from "@/src/components/StyledTextInput";
 
 import { ContactAvatar } from "@/src/components/ContactAvatar";
 import { syncDeviceContacts } from "@/src/utils/sync/contactSync";
+import useSession from "@/src/store/useSession";
 
 export default function Index() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { displayName, avatarUrl, userId } = useSession();
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -105,12 +107,20 @@ export default function Index() {
       paddingTop: 12,
       paddingBottom: 8,
     },
+    headerTopRow: {
+      flexDirection: "row" as const,
+      justifyContent: "space-between" as const,
+      alignItems: "center" as const,
+      marginTop: 8,
+      marginBottom: 12,
+    },
     chatTitle: {
       fontSize: 32,
       fontWeight: "700" as const,
       color: colors.onBackground,
-      marginBottom: 12,
-      marginTop: 12,
+    },
+    profileButton: {
+      borderRadius: 20,
     },
     searchContainer: {
       flexDirection: "row" as const,
@@ -204,7 +214,23 @@ export default function Index() {
 
   const ListHeader = useMemo(() => (
     <View style={themedStyles.headerSection}>
-      <StyledText style={themedStyles.chatTitle}>Chat</StyledText>
+      <View style={themedStyles.headerTopRow}>
+        <StyledText style={themedStyles.chatTitle}>Chat</StyledText>
+        <Pressable
+          style={themedStyles.profileButton}
+          onPress={() => router.push("/profile")}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Open profile"
+        >
+          <ContactAvatar
+            name={displayName}
+            picture={avatarUrl}
+            userId={userId || "me"}
+            size={38}
+          />
+        </Pressable>
+      </View>
       <View style={themedStyles.searchContainer}>
         <MaterialCommunityIcons name="magnify" size={20} color={colors.outline as string} />
         <StyledTextInput
@@ -223,7 +249,7 @@ export default function Index() {
         )}
       </View>
     </View>
-  ), [themedStyles, colors, searchQuery]);
+  ), [themedStyles, colors, searchQuery, displayName, avatarUrl, userId]);
 
   const emptyContent = storageError ? (
     <View style={themedStyles.emptyContent}>

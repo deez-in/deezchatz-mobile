@@ -118,6 +118,7 @@ function InnerLayout({ isAuthenticated }: { isAuthenticated: boolean }) {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={isAuthenticated}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="profile" />
         <Stack.Screen name="chat/[userId]" />
         <Stack.Screen
           name="contacts"

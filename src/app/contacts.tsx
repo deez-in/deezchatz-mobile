@@ -383,7 +383,7 @@ export default function Contacts() {
               <View style={themedStyles.sheetHeaderText}>
                 <StyledText style={themedStyles.sheetTitle}>Contacts Access</StyledText>
                 <StyledText style={themedStyles.sheetDescription}>
-                  DeezChatz needs contacts permission to identify your connections present on the app.
+                  DeezChatz accesses your contacts on-device so you can start conversations with friends. When you start a chat, only that recipient&apos;s phone number is queried securely to discover their encryption keys. Your contacts are not uploaded in bulk and are never stored on our servers.
                 </StyledText>
               </View>
             </View>

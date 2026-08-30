@@ -25,6 +25,10 @@ const config: ExpoConfig = {
     predictiveBackGestureEnabled: true,
     package: "in.deez.chatz",
     googleServicesFile: "./google-services.json",
+    blockedPermissions: [
+      "android.permission.SYSTEM_ALERT_WINDOW",
+      "android.permission.WRITE_CONTACTS",
+    ],
   },
   web: {
     output: "static",
