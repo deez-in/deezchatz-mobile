@@ -68,34 +68,48 @@ export async function startGoogleSignIn(): Promise<AuthenticatedUser> {
   };
 }
 
-// Phase 1: OAuth verification → returns server-assigned userId and state challenge
-export async function verifyGoogleIdToken(idToken: string): Promise<{
+export interface GoogleIdTokenResponse {
+  status: "success";
   userId: string;
   state: string;
   email: string;
   name: string | null;
   picture: string | null;
-}> {
+}
+
+export interface RegisterDeviceResponse {
+  status: "success";
+  userId: string;
+  deviceId: string;
+}
+
+// Phase 1: OAuth verification → returns server-assigned userId and state challenge
+export async function verifyGoogleIdToken(idToken: string): Promise<GoogleIdTokenResponse> {
   const session = useSession.getState();
   const iKey = await session.initIdentityKey();
   const pubIKey = await LibsignalDezireModule.genPubKey(iKey);
 
-  return apiRequest("/register/google/id_token", {
+  return apiRequest<GoogleIdTokenResponse>("/register/google/id_token", {
     method: "POST",
     body: { idToken: idToken, iKey: toBase64(pubIKey) },
   });
 }
 
-// Phase 2: Device + key registration
 export async function registerDevice(
   stateToken: string,
   phoneDetails: { countryCode: string; number: number },
   fcmToken?: string | null,
-): Promise<string> {
+  userId?: string,
+): Promise<RegisterDeviceResponse> {
   const session = useSession.getState();
+  const targetUserId = userId || session.userId;
+  if (!targetUserId) {
+    throw new Error("User ID is missing for device registration.");
+  }
   const { preKey, devKey } = await session.initDeviceKeys(phoneDetails);
   const iKey = session.iKey;
 
+  const pubIKey = await LibsignalDezireModule.genPubKey(iKey);
   const pubPreKey = await LibsignalDezireModule.genPubKey(preKey);
   const pubDevKey = await LibsignalDezireModule.genPubKey(devKey);
 
@@ -104,9 +118,11 @@ export async function registerDevice(
   const { signature: stateSignature, vrf: stateVrf } = await LibsignalDezireModule.vxeddsaSign(iKey, toBytes(stateToken));
   const opksB64 = await generateOpks();
 
-  const response = await apiRequest<{ status: string; userId: string; deviceId: string }>("/register/device", {
+  const response = await apiRequest<RegisterDeviceResponse>("/register/device", {
     method: "POST",
     body: {
+      userId: targetUserId,
+      iKey: toBase64(pubIKey),
       state: stateToken,
       stateSignature: toBase64(stateSignature),
       stateVrf: toBase64(stateVrf),
@@ -122,5 +138,5 @@ export async function registerDevice(
     },
   });
 
-  return response.deviceId;
+  return response;
 }

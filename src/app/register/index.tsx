@@ -1,16 +1,20 @@
-import { Alert, StyleSheet, View } from "react-native";
+import { Alert, StyleSheet, View, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import StyledButton from "@/src/components/StyledButton";
 import { Link, router } from "expo-router";
-import { useThemedStyles } from "@/src/hooks/useTheme";
+import { useTheme, useThemedStyles } from "@/src/hooks/useTheme";
 import StyledText from "@/src/components/StyledText";
 import { useEffect, useState } from "react";
+import * as WebBrowser from "expo-web-browser";
+import { Ionicons } from "@expo/vector-icons";
 import { isGoogleSignInAvailable, GoogleAuthFlowError, startGoogleSignIn, verifyGoogleIdToken } from "@/src/utils/auth/google";
 import useSession from "@/src/store/useSession";
 
 export default function Register() {
+  const { colors } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
+  const [tosAccepted, setTosAccepted] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -33,7 +37,7 @@ export default function Register() {
   }, []);
 
   const handleGoogleSignIn = async () => {
-    if (isLoading) {
+    if (isLoading || !tosAccepted) {
       return;
     }
 
@@ -100,6 +104,25 @@ export default function Register() {
       maxWidth: 320,
       marginTop: 12,
     },
+    tosContainer: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 10,
+      marginVertical: 4,
+      paddingHorizontal: 4,
+    },
+    tosText: {
+      flex: 1,
+      fontSize: 12,
+      lineHeight: 18,
+      color: colors.onSurfaceVariant,
+    },
+    tosLink: {
+      fontSize: 12,
+      color: colors.primary,
+      fontWeight: "600" as const,
+      textDecorationLine: "underline" as const,
+    },
     buttonText: {
       color: colors.onPrimary,
       fontSize: 17,
@@ -145,17 +168,10 @@ export default function Register() {
       width: "100%",
       borderRadius: 16,
     },
-    mutedText: {
-      color: colors.onSurfaceVariant,
-      fontSize: 14,
-      textAlign: "center",
-      lineHeight: 20,
-    },
   }));
   return (
     <SafeAreaView style={dynamicStyles.container}>
       <View style={dynamicStyles.card}>
-        <StyledText style={dynamicStyles.badge}>Android native OAuth</StyledText>
         <StyledText style={dynamicStyles.heading}>
           Welcome to <StyledText style={styles.branding}>Deez Chatz</StyledText>
         </StyledText>
@@ -166,17 +182,45 @@ export default function Register() {
         <StyledButton
           style={dynamicStyles.button}
           onPress={handleGoogleSignIn}
-          disabled={isLoading || isAvailable === false}
+          disabled={isLoading || isAvailable === false || !tosAccepted}
         >
           <StyledText style={dynamicStyles.buttonText}>
             {isLoading ? "Signing in..." : "Continue with Google"}
           </StyledText>
         </StyledButton>
-        <StyledText style={dynamicStyles.mutedText}>
-          {isAvailable === false
-            ? "Google sign-in is unavailable in this build. Check the Android OAuth client IDs and rebuild the app."
-            : "Phone sign-up is being rebuilt and will come back later."}
-        </StyledText>
+
+        <Pressable
+          style={dynamicStyles.tosContainer}
+          onPress={() => setTosAccepted((prev) => !prev)}
+        >
+          <Ionicons
+            name={tosAccepted ? "checkbox" : "square-outline"}
+            size={22}
+            color={tosAccepted ? (colors.primary as string) : (colors.outline as string)}
+          />
+          <StyledText style={dynamicStyles.tosText}>
+            I agree to the{" "}
+            <StyledText
+              style={dynamicStyles.tosLink}
+              onPress={(e) => {
+                e?.stopPropagation?.();
+                WebBrowser.openBrowserAsync("https://chatz.deez.in/terms");
+              }}
+            >
+              Terms of Service
+            </StyledText>
+            {" "}and{" "}
+            <StyledText
+              style={dynamicStyles.tosLink}
+              onPress={(e) => {
+                e?.stopPropagation?.();
+                WebBrowser.openBrowserAsync("https://chatz.deez.in/privacy");
+              }}
+            >
+              Privacy Policy
+            </StyledText>
+          </StyledText>
+        </Pressable>
       </View>
 
       <Link style={dynamicStyles.helpLink} href="/">

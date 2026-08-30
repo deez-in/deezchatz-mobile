@@ -169,3 +169,21 @@ export class OutboxPersistError extends StorageError {
     }
 }
 
+/**
+ * The sender of an incoming message is in the user's blocked contacts list.
+ * NOT recoverable — the message must be deleted from inbox and dropped immediately.
+ */
+export class BlockedContactError extends StorageError {
+    readonly senderUserId: string;
+
+    constructor(senderUserId: string) {
+        super(
+            'BLOCKED_CONTACT',
+            `Message dropped because sender "${senderUserId}" is blocked.`,
+            false
+        );
+        this.name = 'BlockedContactError';
+        this.senderUserId = senderUserId;
+    }
+}
+

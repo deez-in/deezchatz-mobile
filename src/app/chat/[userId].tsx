@@ -7,6 +7,9 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Contact, ContactField } from "expo-contacts";
 import { View, StyleSheet, FlatList, NativeScrollEvent, NativeSyntheticEvent, Pressable, KeyboardAvoidingView, Platform, Keyboard, Alert } from "react-native";
+import { MenuView } from "@expo/ui/community/menu";
+import BlockReportSheet from "@/src/components/BlockReportSheet";
+import { reportUser } from "@/src/utils/api/report";
 import { sendInitialMessage, sendMessage } from '@/src/utils/messaging';
 import {
   openChatDatabase,
@@ -22,6 +25,9 @@ import {
   UserNotFoundError,
   getContactByPhone,
   getContactByUserId,
+  blockContact,
+  unblockContact,
+  isContactBlocked,
 } from '@/src/utils/storage';
 import ChatBubble from "@/src/components/ChatBubble";
 import { ContactAvatar } from "@/src/components/ContactAvatar";
@@ -54,6 +60,8 @@ export default function Chat() {
   const [dbError, setDbError] = useState<string | null>(null);
   const [isUserNotFound, setIsUserNotFound] = useState(false);
   const [showKeyChangeBanner, setShowKeyChangeBanner] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [showBlockSheet, setShowBlockSheet] = useState(false);
 
   useEffect(() => {
     if (Platform.OS === 'ios') return;
@@ -136,9 +144,9 @@ export default function Chat() {
           setDbError(
             'Chat history could not be decrypted and may be unrecoverable.'
           );
-        } else if (error instanceof StorageError && error.recoverable && attempt < 3) {
+        } else if (((error instanceof StorageError && error.recoverable) || (error as Error)?.message?.includes('closed resource')) && attempt < 3) {
           // Transient error — retry with backoff
-          setTimeout(() => initChat(attempt + 1), 500 * (attempt + 1));
+          setTimeout(() => initChat(attempt + 1), 300 * (attempt + 1));
         } else {
           setDbError('Failed to load chat history. Please try again.');
           console.error('Failed to init chat DB:', error);
@@ -364,6 +372,49 @@ export default function Chat() {
     };
   }, [id, userId, resolvedUUID]);
 
+  // Check blocked status
+  useEffect(() => {
+    let isMounted = true;
+    const checkBlocked = async () => {
+      const targetId = resolvedUUID || userId;
+      if (targetId) {
+        const blocked = await isContactBlocked(targetId);
+        if (isMounted) {
+          setIsBlocked(blocked);
+        }
+      }
+    };
+    checkBlocked();
+    return () => {
+      isMounted = false;
+    };
+  }, [resolvedUUID, userId]);
+
+  const handleConfirmBlock = async (shouldReport: boolean) => {
+    const targetId = resolvedUUID || userId;
+    if (!targetId) return;
+
+    await blockContact(targetId);
+    setIsBlocked(true);
+
+    if (shouldReport) {
+      try {
+        await reportUser(targetId, chatMessages);
+        Alert.alert("Report Submitted", "Thank you for reporting. Our team will review the messages.");
+      } catch (err) {
+        console.error("Failed to report user:", err);
+      }
+    }
+  };
+
+  const handleUnblock = async () => {
+    const targetId = resolvedUUID || userId;
+    if (!targetId) return;
+
+    await unblockContact(targetId);
+    setIsBlocked(false);
+  };
+
   // Theme-dependent styles (memoized by theme)
   const themedStyles = useThemedStyles((colors) => ({
     container: {
@@ -437,6 +488,34 @@ export default function Chat() {
       fontSize: 13,
       fontWeight: '600' as const,
     },
+    blockedBanner: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      backgroundColor: colors.surface,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.outlineVariant,
+      gap: 10,
+    },
+    blockedBannerText: {
+      flex: 1,
+      color: colors.error as string,
+      fontSize: 13,
+      lineHeight: 18,
+      fontWeight: '500' as const,
+    },
+    unblockButton: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 6,
+      backgroundColor: colors.surfaceVariant,
+    },
+    unblockButtonText: {
+      color: colors.onSurface as string,
+      fontSize: 13,
+      fontWeight: '600' as const,
+    },
   }));
 
   // Insets-dependent styles (memoized by insets)
@@ -462,8 +541,50 @@ export default function Chat() {
             size={36}
           />
         </View>
-        <StyledText style={styles.headerTitle}>{name || userId}</StyledText>
+        <StyledText style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+          {name || userId}
+        </StyledText>
+        <View style={styles.headerRight}>
+          <MenuView
+            style={styles.menuView}
+            title="Options"
+            onPressAction={({ nativeEvent }) => {
+              if (nativeEvent.event === "block_report") {
+                setShowBlockSheet(true);
+              }
+            }}
+            actions={[
+              {
+                id: "block_report",
+                title: isBlocked ? "Report" : "Block / Report",
+                attributes: {
+                  destructive: true,
+                },
+              },
+            ]}
+          >
+            <View style={styles.menuTrigger}>
+              <Ionicons name="ellipsis-vertical" size={20} color={colors.onBackground as string} />
+            </View>
+          </MenuView>
+        </View>
       </View>
+
+      {isBlocked && (
+        <View style={themedStyles.blockedBanner}>
+          <Ionicons name="ban" size={16} color={colors.error as string} />
+          <StyledText style={themedStyles.blockedBannerText}>
+            You have blocked this contact.
+          </StyledText>
+          <Pressable
+            style={themedStyles.unblockButton}
+            onPress={handleUnblock}
+            hitSlop={8}
+          >
+            <StyledText style={themedStyles.unblockButtonText}>Unblock</StyledText>
+          </Pressable>
+        </View>
+      )}
 
       {showKeyChangeBanner && (
         <View style={themedStyles.keyChangeBanner}>
@@ -533,18 +654,27 @@ export default function Chat() {
       >
         <StyledTextInput
           style={styles.messageInput}
-          placeholder={"Send message"}
+          placeholder={isBlocked ? "You have blocked this contact" : "Send message"}
           value={message}
           onChangeText={setMessage}
           multiline
+          editable={!isBlocked}
         />
         <StyledButton
           onPress={() => handleSendMessage(message)}
           style={styles.messageButton}
+          disabled={isBlocked || !message.trim()}
         >
           <Ionicons name="send" size={24} color={colors.onPrimary as string} />
         </StyledButton>
       </View>
+
+      <BlockReportSheet
+        isPresented={showBlockSheet}
+        onDismiss={() => setShowBlockSheet(false)}
+        contactName={name || userId}
+        onConfirmBlock={handleConfirmBlock}
+      />
     </>
   );
 
@@ -581,8 +711,31 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerTitle: {
+    flex: 1,
     fontSize: 18,
     fontWeight: '600',
+  },
+  headerRight: {
+    marginLeft: "auto",
+    marginRight: 4,
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    flexShrink: 0,
+  },
+  menuView: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  menuTrigger: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
   },
   messageButton: {
     paddingHorizontal: 10,

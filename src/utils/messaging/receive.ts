@@ -7,7 +7,7 @@ import { Session } from '@/src/store/useSession';
 import LibsignalDezireModule from 'expo-libsignal-dezire';
 
 import { fromBase64, toString } from '../helpers/encoding';
-import { saveMessageWithAutoOpen } from '../storage/messages';
+
 import { X3DHBundle, x3dhResponder } from '../crypto/x3dh';
 import { loadOpk } from '../crypto/oneTimePreKeys';
 import { constructReceiverAD } from '../crypto/associatedData';
@@ -16,7 +16,7 @@ import { constructReceiverAD } from '../crypto/associatedData';
 
 type ReceiveInitialMessageParams = {
     session: Session;
-    payload: X3DHBundle & { ciphertext: string; header: string };
+    payload: X3DHBundle & { ciphertext: string; header: string; timestamp?: number };
     senderUserId: string;
     initReceiver: (
         sharedSecret: Uint8Array,
@@ -33,7 +33,7 @@ type ReceiveInitialMessageParams = {
 
 type ReceiveMessageParams = {
     session: Session;
-    payload: { ciphertext: string; header: string };
+    payload: { ciphertext: string; header: string; timestamp?: number };
     senderUserId: string;
     senderIdentityKey: string;
     decrypt: (
@@ -62,15 +62,16 @@ export async function receiveInitialMessage({
     decrypt,
 }: ReceiveInitialMessageParams): Promise<ReceiveResult | null> {
     // 1. Validate payload
-    if (!payload.identityKey || !payload.ephemeralKey || payload.opkId === undefined) {
+    if (!payload.identityKey || !payload.ephemeralKey) {
         console.error('Invalid X3DH payload');
         return null;
     }
 
     try {
-        // 2. Load OPK
-        const opkPrivate = await loadOpk(payload.opkId);
-        if (!opkPrivate) {
+        // 2. Load OPK (if provided)
+        const opkPrivate = payload.opkId != null ? await loadOpk(payload.opkId) : null;
+        if (payload.opkId != null && !opkPrivate) {
+            console.warn(`[Receive] OPK ${payload.opkId} not found in local storage`);
             return null;
         }
 
@@ -93,12 +94,7 @@ export async function receiveInitialMessage({
             return null;
         }
 
-        // 6. Save message
         const plaintextStr = toString(plaintext);
-        await saveMessageWithAutoOpen(senderUserId, {
-            content: plaintextStr,
-            sender_id: senderUserId,
-        });
 
         return {
             sharedSecret,
@@ -133,12 +129,7 @@ export async function receiveMessage({
             return null;
         }
 
-        // 2. Save message
         const plaintextStr = toString(plaintext);
-        await saveMessageWithAutoOpen(senderUserId, {
-            content: plaintextStr,
-            sender_id: senderUserId,
-        });
 
         return {
             plaintext: plaintextStr,

@@ -15,6 +15,7 @@ export interface ContactMapping {
     identity_key_changed: number;
     last_synced_at: number | null;
     created_at: number;
+    blocked?: number;
 }
 
 /**

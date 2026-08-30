@@ -1,37 +1,95 @@
-import React, { useEffect, useState } from "react";
-import { FlatList, Platform, Pressable, StyleSheet, View } from "react-native";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, View, Dimensions } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { BottomSheet, Button, RNHostView, Host } from "@expo/ui";
+import { router } from "expo-router";
+
 import StyledTextInput from "@/src/components/StyledTextInput";
 import Card from "@/src/components/Card";
 import StyledText from "@/src/components/StyledText";
-import { getContacts, SplitContact } from "@/src/utils/helpers/contacts";
+import {
+  getContacts,
+  getContactsPermissionStatus,
+  requestContactsPermission,
+  SplitContact,
+} from "@/src/utils/helpers/contacts";
 import { useTheme, useThemedStyles } from "@/src/hooks/useTheme";
-import { router } from "expo-router";
 
 export default function Contacts() {
   const { colors } = useTheme();
-  const [contacts, setContacts] = useState<SplitContact[] | null>();
-  const [searchTerm, setSearchTerm] = useState<string>();
+  const [contacts, setContacts] = useState<SplitContact[] | undefined>();
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [showDisclosureSheet, setShowDisclosureSheet] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState<string | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      const contacts = await getContacts();
-      setContacts(contacts);
-    })();
+  const loadContacts = useCallback(async () => {
+    const fetched = await getContacts();
+    setContacts(fetched ?? []);
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      const status = await getContactsPermissionStatus();
+      if (!isMounted) return;
+      setPermissionStatus(status);
+      if (status === "granted") {
+        const fetched = await getContacts();
+        if (isMounted) setContacts(fetched ?? []);
+      } else {
+        if (isMounted) {
+          setContacts([]);
+          setShowDisclosureSheet(true);
+        }
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleProceed = async () => {
+    setShowDisclosureSheet(false);
+    const status = await requestContactsPermission();
+    setPermissionStatus(status);
+    if (status === "granted") {
+      await loadContacts();
+    }
+  };
+
   const insets = useSafeAreaInsets();
-  
+
   const themedStyles = useThemedStyles((colors) => ({
-    contactList: {
-      paddingBottom: Platform.OS === "ios" ? insets.bottom + 20 : 12,
-      paddingHorizontal: 4,
-    },
-    blurView: {
+    container: {
       flex: 1,
-      marginTop: Platform.OS === "ios" ? 42 : insets.top || 24,
-      marginHorizontal: Platform.OS === "ios" ? 16 : 12,
+      backgroundColor: colors.background,
+      paddingHorizontal: Platform.OS === "ios" ? 16 : 12,
+    },
+    headingView: {
+      marginTop: 8,
+      marginBottom: 12,
+    },
+    titleRow: {
+      flexDirection: "row" as const,
+      justifyContent: "space-between" as const,
+      alignItems: "center" as const,
+    },
+    heading: {
+      fontSize: 32,
+      fontWeight: "700" as const,
+      color: colors.onBackground,
+    },
+    closeButton: {
+      padding: 4,
+    },
+    searchBar: {
+      borderRadius: 25,
+      marginVertical: 8,
+    },
+    contactList: {
+      paddingBottom: Platform.OS === "ios" ? insets.bottom + 20 : 20,
+      flexGrow: 1,
     },
     pressableCard: {
       marginVertical: 4,
@@ -91,21 +149,82 @@ export default function Contacts() {
       opacity: 0.6,
       marginLeft: 8,
     },
-    heading: {
-      fontSize: 32,
-      fontWeight: "700" as const,
+    centerContainer: {
+      flex: 1,
+      justifyContent: "center" as const,
+      alignItems: "center" as const,
+      paddingVertical: 48,
+      paddingHorizontal: 24,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: "600" as const,
       color: colors.onBackground,
-      zIndex: 5,
+      marginBottom: 6,
+      textAlign: "center" as const,
     },
-    searchBar: {
-      flexGrow: 1,
-      borderRadius: 25,
-      marginVertical: 8,
+    emptySubtext: {
+      fontSize: 14,
+      color: colors.onSurfaceVariant,
+      textAlign: "center" as const,
+      marginBottom: 16,
+      lineHeight: 20,
     },
-    headingView: {
-      flex: 0,
+    emptyText: {
+      fontSize: 15,
+      color: colors.onSurfaceVariant,
+      textAlign: "center" as const,
+      marginTop: 12,
+    },
+    grantButton: {
       marginTop: 8,
-      marginBottom: 12,
+    },
+    sheetContainer: {
+      width: Dimensions.get("window").width,
+      paddingHorizontal: 20,
+      paddingTop: 16,
+      paddingBottom: Platform.OS === "ios" ? insets.bottom + 20 : 24,
+      backgroundColor: colors.surface,
+      gap: 16,
+    },
+    sheetHeader: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 14,
+    },
+    sheetIconContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.primaryContainer,
+      justifyContent: "center" as const,
+      alignItems: "center" as const,
+    },
+    sheetHeaderText: {
+      flex: 1,
+      gap: 4,
+    },
+    sheetTitle: {
+      fontSize: 18,
+      fontWeight: "700" as const,
+      color: colors.onSurface,
+    },
+    sheetDescription: {
+      fontSize: 14,
+      color: colors.onSurfaceVariant,
+      lineHeight: 20,
+    },
+    sheetButtonRow: {
+      flexDirection: "row" as const,
+      gap: 12,
+      width: "100%" as const,
+      marginTop: 8,
+    },
+    cancelButton: {
+      width: (Dimensions.get("window").width - 52) / 2,
+    },
+    proceedButton: {
+      width: (Dimensions.get("window").width - 52) / 2,
     },
   }));
 
@@ -119,31 +238,90 @@ export default function Contacts() {
     return initials || "?";
   };
 
+  const filteredContacts = useMemo(() => {
+    if (!contacts) return undefined;
+    if (!searchTerm.trim()) return contacts;
+    const query = searchTerm.trim().toLowerCase();
+    return contacts.filter((contact) => {
+      const first = contact.firstName ? contact.firstName.toLowerCase() : "";
+      const last = contact.lastName ? contact.lastName.toLowerCase() : "";
+      const full = `${first} ${last}`.trim();
+      const num = contact.number ? contact.number.toLowerCase() : "";
+      return full.includes(query) || num.includes(query);
+    });
+  }, [contacts, searchTerm]);
+
+  const renderEmptyList = () => {
+    if (contacts === undefined) {
+      return (
+        <View style={themedStyles.centerContainer}>
+          <ActivityIndicator size="large" color={colors.primary as string} />
+          <StyledText style={themedStyles.emptyText}>Loading contacts...</StyledText>
+        </View>
+      );
+    }
+
+    if (permissionStatus !== "granted") {
+      return (
+        <View style={themedStyles.centerContainer}>
+          <Ionicons
+            name="people-outline"
+            size={48}
+            color={colors.outline as string}
+            style={{ marginBottom: 12 }}
+          />
+          <StyledText style={themedStyles.emptyTitle}>Contacts Access Needed</StyledText>
+          <StyledText style={themedStyles.emptySubtext}>
+            Allow access to contacts to find your friends on DeezChatz.
+          </StyledText>
+          <View style={themedStyles.grantButton}>
+            <Host matchContents>
+              <Button
+                variant="filled"
+                label="Allow Access"
+                onPress={() => setShowDisclosureSheet(true)}
+              />
+            </Host>
+          </View>
+        </View>
+      );
+    }
+
+    return (
+      <View style={themedStyles.centerContainer}>
+        <StyledText style={themedStyles.emptyText}>
+          {searchTerm ? "No matching contacts found" : "No contacts on device"}
+        </StyledText>
+      </View>
+    );
+  };
+
   return (
-    <SafeAreaView style={themedStyles.blurView}>
+    <SafeAreaView style={themedStyles.container} edges={["top"]}>
       <View style={themedStyles.headingView} collapsable={false}>
-        <StyledText style={themedStyles.heading}>Contacts</StyledText>
+        <View style={themedStyles.titleRow}>
+          <StyledText style={themedStyles.heading}>Contacts</StyledText>
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={12}
+            style={themedStyles.closeButton}
+          >
+            <Ionicons name="close-circle" size={28} color={colors.onSurfaceVariant as string} />
+          </Pressable>
+        </View>
         <StyledTextInput
+          value={searchTerm}
           onChangeText={(text) => setSearchTerm(text)}
           style={themedStyles.searchBar}
           placeholder="Search contacts"
         />
       </View>
       <FlatList
-        data={
-          searchTerm
-            ? contacts?.filter(
-                (contact) =>
-                  contact.number.startsWith(searchTerm) ||
-                  contact.firstName
-                    .toLowerCase()
-                    .startsWith(searchTerm.toLowerCase()),
-              )
-            : contacts
-        }
+        data={filteredContacts}
         keyExtractor={(item) => item.id}
         contentContainerStyle={themedStyles.contactList}
         scrollEnabled={true}
+        ListEmptyComponent={renderEmptyList}
         renderItem={({ item }) => {
           const initials = getInitials(item);
           return (
@@ -155,7 +333,7 @@ export default function Contacts() {
               }}
               style={({ pressed }) => [
                 themedStyles.pressableCard,
-                pressed && themedStyles.cardPressed
+                pressed && themedStyles.cardPressed,
               ]}
             >
               <Card styles={themedStyles.cards}>
@@ -185,6 +363,53 @@ export default function Contacts() {
           );
         }}
       />
+
+      <BottomSheet
+        isPresented={showDisclosureSheet}
+        onDismiss={() => setShowDisclosureSheet(false)}
+        showDragIndicator={true}
+      >
+        <RNHostView matchContents>
+          <View style={themedStyles.sheetContainer}>
+            {/* Header: icon + title/description side-by-side */}
+            <View style={themedStyles.sheetHeader}>
+              <View style={themedStyles.sheetIconContainer}>
+                <Ionicons
+                  name="people"
+                  size={24}
+                  color={colors.onPrimaryContainer as string}
+                />
+              </View>
+              <View style={themedStyles.sheetHeaderText}>
+                <StyledText style={themedStyles.sheetTitle}>Contacts Access</StyledText>
+                <StyledText style={themedStyles.sheetDescription}>
+                  DeezChatz needs contacts permission to identify your connections present on the app.
+                </StyledText>
+              </View>
+            </View>
+
+            {/* Action buttons side-by-side */}
+            <View style={themedStyles.sheetButtonRow}>
+              <Host matchContents>
+                <Button
+                  variant="outlined"
+                  label="Not Now"
+                  onPress={() => setShowDisclosureSheet(false)}
+                  style={themedStyles.cancelButton}
+                />
+              </Host>
+              <Host matchContents>
+                <Button
+                  variant="filled"
+                  label="Proceed"
+                  onPress={handleProceed}
+                  style={themedStyles.proceedButton}
+                />
+              </Host>
+            </View>
+          </View>
+        </RNHostView>
+      </BottomSheet>
     </SafeAreaView>
   );
 }

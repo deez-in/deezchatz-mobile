@@ -13,12 +13,12 @@ import { saveSystemMessage } from '../storage/messages';
 import { clearSession } from '../crypto/ratchet';
 import { notifyChatListListeners } from '../storage/chatList';
 
-type UserSyncInfo = {
+export interface UserSyncInfo {
     userId: string;
     identityKey: string;
-    picture: string | null;
-    displayName: string | null;
-};
+    picture?: string | null;
+    displayName?: string | null;
+}
 
 /**
  * Fetches the latest bundle info for a contact and updates local state.
@@ -62,7 +62,7 @@ export async function syncContactBundle(
     }
 
     // Compare and update local state
-    const result = await updateContactBundle(userId, info.identityKey, info.picture);
+    const result = await updateContactBundle(userId, info.identityKey, info.picture ?? null);
     if (!result) {
         // Contact not found in local DB
         return null;

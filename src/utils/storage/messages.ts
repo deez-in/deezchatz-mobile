@@ -21,6 +21,7 @@ export interface Message {
     content: string;
     sender_id: string;
     created_at: number;
+    received_at?: number | null;
     status: 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
     type: 'message' | 'system';
 }
@@ -72,19 +73,29 @@ export async function getMessages(chatId: string): Promise<Message[]> {
  */
 export async function saveMessage(
     chatId: string,
-    message: { content: string; sender_id: string; status?: Message['status'] }
+    message: {
+        content: string;
+        sender_id: string;
+        status?: Message['status'];
+        created_at?: number;
+        received_at?: number | null;
+        type?: Message['type'];
+    }
 ): Promise<string> {
     const db = requireChatDatabase(chatId);
     const id = generateMessageId();
-    const created_at = Date.now();
+    const created_at = message.created_at ?? Date.now();
+    const received_at = message.received_at ?? null;
 
     await db.runAsync(
-        'INSERT INTO messages (id, content, sender_id, created_at, status) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO messages (id, content, sender_id, created_at, received_at, status, type) VALUES (?, ?, ?, ?, ?, ?, ?)',
         id,
         message.content,
         message.sender_id,
         created_at,
-        message.status ?? 'sent'
+        received_at,
+        message.status ?? 'sent',
+        message.type ?? 'message'
     );
 
     // Update chat list in primary DB
@@ -150,22 +161,32 @@ export async function updateMessageStatusWithAutoOpen(
  */
 export async function saveMessageWithAutoOpen(
     chatId: string,
-    message: { content: string; sender_id: string; status?: Message['status'] }
+    message: {
+        content: string;
+        sender_id: string;
+        status?: Message['status'];
+        created_at?: number;
+        received_at?: number | null;
+        type?: Message['type'];
+    }
 ): Promise<string> {
     const wasAlreadyOpen = isDatabaseOpen(chatId);
     const db = await openChatDatabase(chatId);
 
     try {
         const id = generateMessageId();
-        const created_at = Date.now();
+        const created_at = message.created_at ?? Date.now();
+        const received_at = message.received_at ?? null;
 
         await db.runAsync(
-            'INSERT INTO messages (id, content, sender_id, created_at, status) VALUES (?, ?, ?, ?, ?)',
+            'INSERT INTO messages (id, content, sender_id, created_at, received_at, status, type) VALUES (?, ?, ?, ?, ?, ?, ?)',
             id,
             message.content,
             message.sender_id,
             created_at,
-            message.status ?? 'sent'
+            received_at,
+            message.status ?? 'sent',
+            message.type ?? 'message'
         );
 
         await upsertChatThread(chatId, message.content);
@@ -192,7 +213,8 @@ export async function saveSystemMessage(
 
     try {
         const id = generateMessageId();
-        const created_at = Date.now();
+        // Subtract 1ms to guarantee it appears before the immediately following user message
+        const created_at = Date.now() - 1;
 
         await db.runAsync(
             "INSERT INTO messages (id, content, sender_id, created_at, status, type) VALUES (?, ?, ?, ?, ?, ?)",
