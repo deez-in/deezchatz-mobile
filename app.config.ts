@@ -5,10 +5,11 @@ const config: ExpoConfig = {
   slug: "deezchatz",
   version: "0.5.0",
   orientation: "portrait",
-  icon: "./src/assets/images/icon.icon",
+  icon: "./src/assets/images/android-icon-foreground.png",
   scheme: "deezchatz",
   userInterfaceStyle: "automatic",
   ios: {
+    icon: "./src/assets/images/icon.icon",
     supportsTablet: true,
     bundleIdentifier: "in.deez.chatz",
     infoPlist: {
@@ -35,7 +36,7 @@ const config: ExpoConfig = {
     [
       "expo-notifications",
       {
-        icon: "./src/assets/images/icon.png",
+        icon: "./src/assets/images/android-icon-foreground.png",
         color: "#FFCC00",
         androidMode: "default",
       },
