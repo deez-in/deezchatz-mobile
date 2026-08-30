@@ -22,6 +22,9 @@ export async function registerTokenWithBackend(
   deviceToken: string
 ): Promise<boolean> {
   const session = useSession.getState();
+  if (!session.deviceId || !session.userId) {
+    return false;
+  }
   try {
     await withRetry(
       async () => {

@@ -42,8 +42,13 @@ export default function Verify() {
     setIsLoading(true);
     try {
       const session = useSession.getState();
-      const deviceId = await registerDevice(stateToken as string, { countryCode, number: Number(phoneNumber) });
-      session.markDeviceRegistered(deviceId);
+      const response = await registerDevice(
+        stateToken as string,
+        { countryCode, number: Number(phoneNumber) },
+        null,
+        userId as string
+      );
+      session.markDeviceRegistered(response.deviceId);
 
       router.replace("/");
     } catch (error) {
