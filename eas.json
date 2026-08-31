@@ -32,7 +32,7 @@
       }
     },
     "production": {
-      "autoIncrement": true,
+      "autoIncrement": false,
       "env": {
         "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "715076094331-1mp3d22vos3jlsg2g9vnn4chc03d0hvn.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "715076094331-oi6ismvp5s89vr2mh7sus5iac21ndoeo.apps.googleusercontent.com",
