@@ -3,12 +3,21 @@
  * Used by both the live MQTT handler and the inbox retry system.
  */
 
-import { Session } from '@/src/store/useSession';
-import { X3DHBundle, initReceiver, decryptMessage, getIdentityKey, PreKeyBundle } from '@/src/utils/crypto';
+import { Session } from '@/src/models/store';
+import { X3DHBundle } from '@/src/models/crypto';
+import { initReceiver, decryptMessage, getIdentityKey } from '@/src/utils/crypto';
 import { receiveInitialMessage, receiveMessage } from './receive';
-import { apiRequest } from '../transport/api';
-import { saveContact, upsertChatThread, updateContactBundle, saveSystemMessage, saveMessageWithAutoOpen, isContactBlocked, BlockedContactError } from '../storage';
-import { syncDeviceContacts } from '../sync/contactSync';
+import { fetchPreKeyBundle } from '@/src/utils/api/bundle';
+import {
+    saveContact,
+    upsertChatThread,
+    updateContactBundle,
+    saveSystemMessage,
+    saveMessageWithAutoOpen,
+    isContactBlocked,
+    BlockedContactError,
+} from '@/src/utils/db';
+import { syncDeviceContacts } from '@/src/utils/network/sync/contactSync';
 
 /**
  * Processes a raw MQTT message (already parsed from JSON).
@@ -62,10 +71,7 @@ export async function processIncomingMessage(
 
         // Fetch their bundle to resolve their phone number and save contact mapping!
         try {
-            const bundle = await apiRequest<PreKeyBundle>(
-                `/bundle/${encodeURIComponent(senderUserId)}`,
-                { method: 'POST', authenticated: true }
-            );
+            const bundle = await fetchPreKeyBundle(senderUserId);
             if (bundle && bundle.phone) {
                 await saveContact(bundle.phone, senderUserId, bundle.picture);
                 await upsertChatThread(senderUserId, result.plaintext, bundle.phone);

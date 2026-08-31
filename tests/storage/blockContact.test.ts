@@ -1,8 +1,8 @@
-import { blockContact, unblockContact, isContactBlocked } from "@/src/utils/storage/blockContact";
-import { openPrimaryDatabase } from "@/src/utils/storage/database";
-import { BlockedContactError } from "@/src/utils/storage/errors";
+import { blockContact, unblockContact, isContactBlocked } from "@/src/utils/db/blockContact";
+import { openPrimaryDatabase } from "@/src/clients/sqliteClient";
+import { BlockedContactError } from "@/src/utils/db/errors";
 
-jest.mock("@/src/utils/storage/database", () => ({
+jest.mock("@/src/clients/sqliteClient", () => ({
   openPrimaryDatabase: jest.fn(),
 }));
 

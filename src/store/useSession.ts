@@ -3,44 +3,12 @@ import { setItemAsync, getItemAsync, deleteItemAsync, AFTER_FIRST_UNLOCK } from 
 import { createJSONStorage, persist } from "zustand/middleware";
 import { Alert } from "react-native";
 import LibsignalDezireModule from "expo-libsignal-dezire";
+import { Session } from "@/src/models/store";
 
-type PhoneIdentity = {
-  countryCode: string;
-  number: number;
-};
-
-type AuthProvider = "google" | null;
-
-export type Session = {
-  phone: PhoneIdentity;
-  iKey: Uint8Array;
-  preKey: Uint8Array;
-  devKey: Uint8Array;
-  isAuthenticated: boolean;
-  authProvider: AuthProvider;
-  googleOauthToken: string | null;
-  userId: string | null;
-  deviceId: string | null;
-  email: string | null;
-  displayName: string | null;
-  avatarUrl: string | null;
-  pushToken: string | null;
-  pushTokenRegistered: boolean;
-  setPushToken: (token: string | null) => void;
-  setPushTokenRegistered: (registered: boolean) => void;
-  initIdentityKey: () => Promise<Uint8Array>;
-  initDeviceKeys: (phone: PhoneIdentity) => Promise<{ preKey: Uint8Array; devKey: Uint8Array }>;
-  clearSession: () => Promise<void>;
-  markDeviceRegistered: (deviceId: string) => void;
-  setAuthenticatedUser: (payload: {
-    token: string;
-    userId: string;
-    email: string | null;
-    displayName: string | null;
-    avatarUrl: string | null;
-  }) => void;
-
-};
+export type PhoneIdentity = {
+    countryCode: string;
+    number: number;
+}
 
 const useSession = create(
   persist<Session>(
@@ -110,7 +78,7 @@ const useSession = create(
         set({ iKey });
         return iKey;
       },
-      initDeviceKeys: async (phone) => {
+      initDeviceKeys: async (phone: PhoneIdentity) => {
         await deleteItemAsync("opks");
         const preKey = await LibsignalDezireModule.genSecret();
         const devKey = await LibsignalDezireModule.genSecret();

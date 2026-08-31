@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import useSession from '@/src/store/useSession';
-import { getContactByUserId } from '@/src/utils/storage';
+import { getContactByUserId } from '@/src/utils/db';
 import {
   requestNotificationPermission,
   fetchDeviceToken,
@@ -10,8 +10,6 @@ import {
   setupNotificationChannel,
   BACKGROUND_NOTIFICATION_TASK,
 } from '@/src/utils/notifications';
-
-
 
 export default function useNotifications(isAuthenticated: boolean) {
   const { pushToken, pushTokenRegistered, setPushToken, setPushTokenRegistered, googleOauthToken } = useSession((s) => s);

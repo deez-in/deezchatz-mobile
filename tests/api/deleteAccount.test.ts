@@ -1,7 +1,7 @@
-import { deleteAccount } from "@/src/utils/api/deleteAccount";
-import { apiRequest } from "@/src/utils/transport/api";
+import { deleteAccount } from "@/src/utils/api/user";
+import { apiRequest } from "@/src/clients/apiClient";
 
-jest.mock("@/src/utils/transport/api", () => ({
+jest.mock("@/src/clients/apiClient", () => ({
   apiRequest: jest.fn(),
 }));
 

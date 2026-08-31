@@ -83,6 +83,12 @@ tests/                    # Jest testing suite
 
 ## Code Style Guidelines
 
+### Comments
+
+- **Avoid procedural step-by-step comments** (e.g., `// 1. Fetch data`, `// 2. Parse data`). Let the code speak for itself.
+- **Focus on the "Why"**. Comments should explain the rationale, edge cases, error handling, or business logic that isn't immediately obvious from the code.
+- **Avoid visual ASCII dividers** (e.g., `// -------------------`) for separating sections.
+
 ### Imports
 
 Order imports as follows (separated by blank lines):

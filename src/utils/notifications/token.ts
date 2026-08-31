@@ -1,6 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import useSession from '@/src/store/useSession';
-import { apiRequest, ApiError } from '@/src/utils/transport/api';
+import { apiRequest, ApiError } from '@/src/clients/apiClient';
 import { withRetry, BailoutError } from '@/src/utils/helpers/retry';
 
 /**

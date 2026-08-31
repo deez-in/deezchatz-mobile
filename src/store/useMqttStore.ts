@@ -1,12 +1,12 @@
 import { create } from "zustand";
-import MqttClient from "expo-native-mqtt";
+import type MqttClient from "expo-native-mqtt";
 
 export type MqttStore = {
-    client: typeof MqttClient | undefined;
-    setClient: (client: typeof MqttClient | undefined) => void;
+    client?: typeof MqttClient;
+    setClient: (client?: typeof MqttClient) => void;
     isConnected: boolean;
     setConnected: (connected: boolean) => void;
-};
+}
 
 const useMqttStore = create<MqttStore>((set) => ({
     client: undefined,

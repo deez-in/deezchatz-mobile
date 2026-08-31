@@ -1,8 +1,10 @@
 import * as TaskManager from 'expo-task-manager';
 import * as Notifications from 'expo-notifications';
-import { saveToInbox, markInboxProcessed, getContactInfo } from '@/src/utils/storage';
-import useSession, { Session } from '@/src/store/useSession';
+import { saveToInbox, markInboxProcessed, getContactInfo } from '@/src/utils/db';
+import useSession from '@/src/store/useSession';
+import { Session } from '@/src/models/store';
 import { processIncomingMessage } from '@/src/utils/messaging';
+import { PushNotificationEvent } from '@/src/models/notifications';
 import { showMessageNotification } from './local';
 
 export const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND-NOTIFICATION-TASK';
@@ -21,7 +23,7 @@ TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error, execu
   }
 
   try {
-    const pushEvent = data as { notification?: any; data?: any };
+    const pushEvent = data as PushNotificationEvent;
     const payloadData = pushEvent.notification?.request?.content?.data || pushEvent.data;
 
     if (!payloadData) {

@@ -1,6 +1,6 @@
 import React from "react";
 import { render, fireEvent, act } from "@testing-library/react-native";
-import DeleteAccountSheet from "@/src/components/DeleteAccountSheet";
+import { DeleteAccountSheet } from "@/src/components/shared";
 import { ThemeProvider } from "@/src/hooks/useTheme";
 
 // Mock @expo/ui components for test environment

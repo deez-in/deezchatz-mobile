@@ -5,15 +5,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { BottomSheet, Button, RNHostView, Host } from "@expo/ui";
 import { router } from "expo-router";
 
-import StyledTextInput from "@/src/components/StyledTextInput";
-import Card from "@/src/components/Card";
-import StyledText from "@/src/components/StyledText";
+import { StyledTextInput, Card, StyledText } from "@/src/components/ui";
 import {
   getContacts,
   getContactsPermissionStatus,
   requestContactsPermission,
-  SplitContact,
 } from "@/src/utils/helpers/contacts";
+import { SplitContact } from "@/src/models/contact";
 import { useTheme, useThemedStyles } from "@/src/hooks/useTheme";
 
 export default function Contacts() {

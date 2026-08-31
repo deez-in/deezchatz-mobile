@@ -2,17 +2,14 @@
  * Utility for retrying async functions with exponential backoff.
  */
 
+import { RetryOptions } from "@/src/models/helpers";
+
+
 export class BailoutError extends Error {
   constructor(public originalError: any) {
     super('Bailed out of retry loop');
     this.name = 'BailoutError';
   }
-}
-
-interface RetryOptions {
-  maxAttempts: number;
-  initialDelay: number;
-  backoffFactor?: number;
 }
 
 export async function withRetry<T>(

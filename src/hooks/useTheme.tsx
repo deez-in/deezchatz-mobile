@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useMemo } from "react";
 import { StyleSheet, useColorScheme } from "react-native";
-import { getColors, ThemeColors } from "@/src/static/colors";
+import { ThemeColors } from "@/src/models/theme";
+import { getColors } from "@/src/static/colors";
 
-// Define types for the Theme Context
-interface ThemeContextType {
+export interface ThemeContextType {
   colors: ThemeColors;
   scheme: "light" | "dark" | null;
 }
@@ -35,7 +35,6 @@ export function useTheme() {
   return context;
 }
 
-export type { ThemeColors };
 
 /**
  * Hook for creating memoized themed styles.

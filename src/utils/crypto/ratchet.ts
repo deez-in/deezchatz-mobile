@@ -8,16 +8,18 @@ import {
     saveChatSession,
     loadChatSession,
     deleteChatSession,
-} from '../storage/chats';
+} from '@/src/utils/db/chats';
+
+export type SessionCache = {
+    uuid: string;
+    identityKey?: string;
+    deviceId?: string;
+};
+
 
 /**
  * In-memory cache for active sessions.
  */
-type SessionCache = {
-    uuid: string;             // Ratchet UUID (in-memory handle)
-    identityKey: string;      // Identity key
-    deviceId: string;         // Device ID
-};
 const sessionCache: Record<string, SessionCache> = {};
 
 // ===== Session Cache Management =====

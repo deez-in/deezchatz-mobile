@@ -1,13 +1,13 @@
 import { Alert, StyleSheet, View, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import StyledButton from "@/src/components/StyledButton";
+import { StyledButton, StyledText } from "@/src/components/ui";
 import { Link, router } from "expo-router";
 import { useTheme, useThemedStyles } from "@/src/hooks/useTheme";
-import StyledText from "@/src/components/StyledText";
 import { useEffect, useState } from "react";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
-import { isGoogleSignInAvailable, GoogleAuthFlowError, startGoogleSignIn, verifyGoogleIdToken } from "@/src/utils/auth/google";
+import { isGoogleSignInAvailable, GoogleAuthFlowError, startGoogleSignIn } from "@/src/utils/auth/google";
+import { verifyGoogleIdToken } from "@/src/utils/api/auth";
 import useSession from "@/src/store/useSession";
 
 export default function Register() {

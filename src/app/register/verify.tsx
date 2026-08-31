@@ -3,11 +3,10 @@ import { View, Alert, TextInput, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
 
-import StyledButton from "@/src/components/StyledButton";
-import StyledText from "@/src/components/StyledText";
+import { StyledButton, StyledText } from "@/src/components/ui";
 import { useTheme, useThemedStyles } from "@/src/hooks/useTheme";
 import useSession from "@/src/store/useSession";
-import { registerDevice } from "@/src/utils/auth/google";
+import { registerDevice } from "@/src/utils/api/auth";
 
 export default function Verify() {
   const params = useLocalSearchParams<{
@@ -20,7 +19,6 @@ export default function Verify() {
   }>();
 
   const { token, userId, stateToken, email, displayName, avatarUrl } = params;
-
 
   const [isLoading, setIsLoading] = useState(false);
   const [countryCode, setCountryCode] = useState("+91");

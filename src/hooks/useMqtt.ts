@@ -4,7 +4,8 @@ import { useEffect } from "react";
 import { Alert } from "react-native";
 import { fromBase64, toString } from "@/src/utils/helpers/encoding";
 import useMqttStore from "@/src/store/useMqttStore";
-import useSession, { Session } from "@/src/store/useSession";
+import useSession from "@/src/store/useSession";
+import { Session } from "@/src/models/store";
 import { processIncomingMessage } from "@/src/utils/messaging";
 import {
     saveToInbox,
@@ -19,8 +20,8 @@ import {
     updateMessageStatusWithAutoOpen,
     StorageError,
     BlockedContactError,
-} from "@/src/utils/storage";
-import { publishMessage } from "@/src/utils/transport/mqtt";
+} from "@/src/utils/db";
+import { publishMessage } from "@/src/clients/mqttClient";
 
 /**
  * Processes a single inbox entry.

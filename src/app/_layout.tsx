@@ -12,7 +12,7 @@ import {
   DatabaseKeyMismatchError,
   pruneInbox,
   pruneOutbox,
-} from "@/src/utils/storage";
+} from "@/src/utils/db";
 import useNotifications from "@/src/hooks/useNotifications";
 
 // Set the animation options. This is optional.

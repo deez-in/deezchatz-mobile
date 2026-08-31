@@ -18,7 +18,7 @@
  */
 
 import useMqttStore from '@/src/store/useMqttStore';
-import { Session } from '@/src/store/useSession';
+import { PreKeyBundle } from '@/src/models/crypto';
 import LibsignalDezireModule, { RatchetEncryptResult } from 'expo-libsignal-dezire';
 
 import { toBase64, fromBase64, toBytes } from '../helpers/encoding';
@@ -35,46 +35,17 @@ import {
     EncryptionError,
     OutboxPersistError,
     UserNotFoundError,
-} from '../storage';
-import { buildMessageTopic, publishMessage } from '../transport/mqtt';
-import { x3dhInitiator, PreKeyBundle, clearSession } from '../crypto';
-import { constructSenderAD } from '../crypto/associatedData';
-import { apiRequest } from '../transport/api';
-import { syncDeviceContacts } from '../sync/contactSync';
+} from '@/src/utils/db';
+import { buildMessageTopic, publishMessage } from '@/src/clients/mqttClient';
+import { x3dhInitiator, clearSession } from '@/src/utils/crypto';
+import { constructSenderAD } from '@/src/utils/crypto/associatedData';
+import { fetchPreKeyBundle } from '@/src/utils/api/bundle';
+import { syncDeviceContacts } from '@/src/utils/network/sync/contactSync';
 
-// ===== Type Definitions =====
-
-type SendInitialMessageParams = {
-    session: Session;
-    recipientIdentifier: string;
-    message: string;
-    name?: string;
-    initSender: (
-        userId: string,
-        sharedSecret: Uint8Array,
-        receiverPub: Uint8Array,
-        identityKey: string,
-        deviceId: string
-    ) => Promise<string | undefined>;
-    encrypt: (
-        userId: string,
-        plaintext: Uint8Array,
-        ad?: Uint8Array
-    ) => Promise<RatchetEncryptResult | null>;
-};
-
-type SendMessageParams = {
-    session: Session;
-    recipientUserId: string;
-    recipientDeviceId: string;
-    message: string;
-    encrypt: (
-        userId: string,
-        plaintext: Uint8Array,
-        ad?: Uint8Array
-    ) => Promise<RatchetEncryptResult | null>;
-    recipientIdentityKey: string;
-};
+import {
+    SendInitialMessageParams,
+    SendMessageParams,
+} from '@/src/models/messaging';
 
 
 // On failure, increments the retry counter (auto-fails after MAX_RETRIES).
@@ -103,7 +74,7 @@ async function attemptPublish(
     }
 }
 
-// ===== API =====
+
 
 /**
  * Sends the initial message to a contact (performs X3DH key exchange).
@@ -122,19 +93,16 @@ export async function sendInitialMessage({
     initSender,
     encrypt,
 }: SendInitialMessageParams): Promise<{ userId: string }> {
-    // 1. Check connectivity — X3DH requires fetching the bundle
+    // X3DH requires fetching the recipient's pre-key bundle from the server
     const { isConnected } = useMqttStore.getState();
     if (!isConnected) {
         throw new BundleFetchError(recipientIdentifier);
     }
 
-    // 2. Fetch Bundle
+
     let preKeyBundle: PreKeyBundle | undefined;
     try {
-        preKeyBundle = await apiRequest<PreKeyBundle>(
-            `/bundle/${encodeURIComponent(recipientIdentifier)}`,
-            { method: 'POST', authenticated: true }
-        );
+        preKeyBundle = await fetchPreKeyBundle(recipientIdentifier);
 
         if (!preKeyBundle || !preKeyBundle.identityKey || !preKeyBundle.userId || !preKeyBundle.deviceId) {
             throw new BundleFetchError(recipientIdentifier);
@@ -148,7 +116,7 @@ export async function sendInitialMessage({
     const resolvedUserId = preKeyBundle.userId;
     const resolvedPhone = preKeyBundle.phone || recipientIdentifier;
 
-    // 4. X3DH Key Exchange
+
     let sharedSecret: Uint8Array;
     let ephemeralKey: Uint8Array;
     try {
@@ -166,7 +134,7 @@ export async function sendInitialMessage({
         throw new EncryptionError(resolvedPhone, e as Error);
     }
 
-    // 5. Construct AD and encrypt
+
     let ciphertext: RatchetEncryptResult;
     try {
         const ad = await constructSenderAD(session.iKey, preKeyBundle.identityKey);
@@ -181,7 +149,7 @@ export async function sendInitialMessage({
         throw new EncryptionError(resolvedPhone, e as Error);
     }
 
-    // 6. Build payload
+
     const now = Date.now();
     const senderIdentityPub = await LibsignalDezireModule.genPubKey(session.iKey);
     const payload = {
@@ -200,7 +168,7 @@ export async function sendInitialMessage({
         session.userId!, session.deviceId!
     );
 
-    // 7. Publish to MQTT first! (Publish-first workflow)
+    // Publish to MQTT first (Publish-first workflow)
     let publishSuccess = false;
     try {
         publishSuccess = await publishMessage(topic, payloadStr);
@@ -214,7 +182,7 @@ export async function sendInitialMessage({
         throw new Error("Message has not been sent. Please try again.");
     }
 
-    // 8. On successful publish, persist everything to DB!
+    // On successful publish, persist everything to DB
     try {
         // Save phone <-> UUID mapping
         await saveContact(resolvedPhone, resolvedUserId, preKeyBundle.picture, name);
@@ -257,7 +225,7 @@ export async function sendMessage({
     encrypt,
     recipientIdentityKey,
 }: SendMessageParams): Promise<void> {
-    // 1. Construct AD and encrypt
+
     let ciphertext: RatchetEncryptResult;
     try {
         const ad = await constructSenderAD(session.iKey, recipientIdentityKey);
@@ -271,7 +239,7 @@ export async function sendMessage({
         throw new EncryptionError(recipientUserId, e as Error);
     }
 
-    // 2. Build payload
+
     const now = Date.now();
     const payload = {
         ciphertext: toBase64(ciphertext.ciphertext),
@@ -280,7 +248,7 @@ export async function sendMessage({
     };
     const payloadStr = JSON.stringify(payload);
 
-    // 3. Save message as 'pending' + queue to outbox
+    // Save message as 'pending' + queue to outbox
     let messageId: string;
     let outboxId: number;
     const topic = buildMessageTopic(
@@ -299,7 +267,7 @@ export async function sendMessage({
         throw new OutboxPersistError(recipientUserId, e as Error);
     }
 
-    // 4. Attempt publish (if connected) — failure is non-fatal
+    // Attempt publish (if connected) — failure is non-fatal
     try {
         const { isConnected } = useMqttStore.getState();
         if (isConnected) {

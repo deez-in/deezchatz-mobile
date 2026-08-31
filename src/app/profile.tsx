@@ -14,12 +14,10 @@ import { setStringAsync } from "expo-clipboard";
 
 import { useTheme, useThemedStyles } from "@/src/hooks/useTheme";
 import useSession from "@/src/store/useSession";
-import StyledText from "@/src/components/StyledText";
-import StyledButton from "@/src/components/StyledButton";
-import { ContactAvatar } from "@/src/components/ContactAvatar";
-import DeleteAccountSheet from "@/src/components/DeleteAccountSheet";
-import { deleteAccount } from "@/src/utils/api/deleteAccount";
-import { wipeAllDatabases } from "@/src/utils/storage";
+import { StyledText, StyledButton } from "@/src/components/ui";
+import { ContactAvatar, DeleteAccountSheet } from "@/src/components/shared";
+import { deleteAccount } from "@/src/utils/api/user";
+import { wipeAllDatabases } from "@/src/utils/db";
 
 export default function ProfileScreen() {
   const { colors } = useTheme();

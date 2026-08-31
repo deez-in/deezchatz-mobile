@@ -1,9 +1,9 @@
-import { reportUser } from "@/src/utils/api/report";
-import { apiRequest } from "@/src/utils/transport/api";
+import { reportUser } from "@/src/utils/api/user";
+import { apiRequest } from "@/src/clients/apiClient";
 import useSession from "@/src/store/useSession";
-import { Message } from "@/src/utils/storage/messages";
+import { Message } from "@/src/models/db";
 
-jest.mock("@/src/utils/transport/api", () => ({
+jest.mock("@/src/clients/apiClient", () => ({
   apiRequest: jest.fn(),
 }));
 

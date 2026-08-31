@@ -1,6 +1,4 @@
-import StyledButton from "@/src/components/StyledButton";
-import StyledText from "@/src/components/StyledText";
-import StyledTextInput from "@/src/components/StyledTextInput";
+import { StyledButton, StyledText, StyledTextInput } from "@/src/components/ui";
 import { useTheme, useThemedStyles } from "@/src/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
@@ -8,15 +6,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Contact, ContactField } from "expo-contacts";
 import { View, StyleSheet, FlatList, NativeScrollEvent, NativeSyntheticEvent, Pressable, KeyboardAvoidingView, Platform, Keyboard, Alert } from "react-native";
 import { MenuView } from "@expo/ui/community/menu";
-import BlockReportSheet from "@/src/components/BlockReportSheet";
-import { reportUser } from "@/src/utils/api/report";
+import { BlockReportSheet, ContactAvatar } from "@/src/components/shared";
+import { ChatBubble } from "@/src/components/chat";
+import { reportUser } from "@/src/utils/api/user";
 import { sendInitialMessage, sendMessage } from '@/src/utils/messaging';
 import {
   openChatDatabase,
   closeChatDatabase,
   getMessages,
   subscribeToMessages,
-  Message,
   DatabaseKeyMismatchError,
   StorageError,
   BundleFetchError,
@@ -28,11 +26,11 @@ import {
   blockContact,
   unblockContact,
   isContactBlocked,
-} from '@/src/utils/storage';
-import ChatBubble from "@/src/components/ChatBubble";
-import { ContactAvatar } from "@/src/components/ContactAvatar";
-import { getContactInfo, acknowledgeKeyChange } from "@/src/utils/storage/contacts";
-import { syncContactBundle } from "@/src/utils/sync/bundleSync";
+  getContactInfo,
+  acknowledgeKeyChange,
+} from '@/src/utils/db';
+import { Message } from "@/src/models/db";
+import { syncContactBundle } from "@/src/utils/network/sync/bundleSync";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -46,9 +44,9 @@ import {
   getDeviceId,
   loadRatchetSession,
   clearSession,
-  PreKeyBundle,
 } from "@/src/utils/crypto";
-import { apiRequest } from "@/src/utils/transport/api";
+import { PreKeyBundle } from "@/src/models/crypto";
+import { apiRequest } from "@/src/clients/apiClient";
 import { withRetry, BailoutError } from "@/src/utils/helpers/retry";
 
 
@@ -431,11 +429,10 @@ export default function Chat() {
 
         if (!reportTargetUUID) {
           Alert.alert("Report Failed", "Could not resolve user ID to submit report.");
-          return;
+        } else {
+          await reportUser(reportTargetUUID, chatMessages);
+          Alert.alert("Report Submitted", "Thank you for reporting. Our team will review the messages.");
         }
-
-        await reportUser(reportTargetUUID, chatMessages);
-        Alert.alert("Report Submitted", "Thank you for reporting. Our team will review the messages.");
       } catch (err: any) {
         console.error("Failed to report user:", err);
         Alert.alert("Report Failed", err?.message || "Failed to submit report. Please try again.");

@@ -5,29 +5,9 @@
 
 import LibsignalDezireModule from 'expo-libsignal-dezire';
 import { fromBase64 } from '../helpers/encoding';
-import { Session } from '@/src/store/useSession';
+import { Session } from '@/src/models/store';
+import { PreKeyBundle, X3DHBundle } from '@/src/models/crypto';
 
-export type PreKeyBundle = {
-    userId: string;
-    phone: string;
-    deviceId: string;
-    identityKey: string;
-    spkId?: number;
-    signature: string;
-    signedPreKey: string;
-    opk?: {
-        id: number;
-        key: string;
-    };
-    picture?: string;
-};
-
-export type X3DHBundle = {
-    identityKey: string;
-    ephemeralKey: string;
-    spkId?: number | null;
-    opkId?: number | null;
-};
 
 /**
  * Serializes Bob's (receiver's) key bundle for the native module.
@@ -57,8 +37,6 @@ function serializeBobBundle(
     }
     return bytes;
 }
-
-
 
 /**
  * Initiator side of X3DH key agreement.

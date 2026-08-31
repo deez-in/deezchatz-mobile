@@ -113,8 +113,8 @@ Each database is:
 
 ```sql
 CREATE TABLE chats (
-    phone         TEXT PRIMARY KEY NOT NULL,  -- Contact phone number
-    name          TEXT,                       -- Contact name (nullable)
+    user_id       TEXT PRIMARY KEY NOT NULL,  -- Contact user ID
+    phone         TEXT,                       -- Contact phone number (nullable)
     last_message  TEXT,                       -- Preview text
     last_message_at INTEGER NOT NULL,         -- Timestamp (ms)
     unread_count  INTEGER DEFAULT 0,          -- Unread badge count
@@ -122,15 +122,56 @@ CREATE TABLE chats (
 );
 
 CREATE INDEX idx_chats_updated ON chats(updated_at DESC);
+
+CREATE TABLE inbox (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    topic       TEXT NOT NULL,
+    payload     TEXT NOT NULL,
+    received_at INTEGER NOT NULL,
+    status      TEXT NOT NULL DEFAULT 'pending',
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    processed_at INTEGER
+);
+
+CREATE INDEX idx_inbox_status ON inbox(status);
+
+CREATE TABLE outbox (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    chat_id      TEXT NOT NULL,
+    message_id   TEXT NOT NULL,
+    payload      TEXT NOT NULL,
+    topic        TEXT NOT NULL,
+    created_at   INTEGER NOT NULL,
+    status       TEXT NOT NULL DEFAULT 'pending',
+    retry_count  INTEGER NOT NULL DEFAULT 0,
+    sent_at      INTEGER
+);
+
+CREATE INDEX idx_outbox_status ON outbox(status);
+
+CREATE TABLE contacts (
+    phone      TEXT PRIMARY KEY NOT NULL,
+    user_id    TEXT NOT NULL UNIQUE,
+    contact_id TEXT,
+    name       TEXT,
+    picture    TEXT,
+    created_at INTEGER NOT NULL,
+    identity_key TEXT,
+    identity_key_changed INTEGER DEFAULT 0,
+    last_synced_at INTEGER,
+    blocked INTEGER DEFAULT 0
+);
+
+CREATE INDEX idx_contacts_user_id ON contacts(user_id);
 ```
 
 **CRUD operations** ([chatList.ts](file:///Users/destiny/Important/code/deezchatz-mobile/src/utils/storage/chatList.ts)):
 
 | Operation | Function | SQL |
 |-----------|----------|-----|
-| Upsert | `upsertChatThread(phone, lastMessage)` | `INSERT ... ON CONFLICT(phone) DO UPDATE` |
+| Upsert | `upsertChatThread(userId, phone, lastMessage)` | `INSERT ... ON CONFLICT(user_id) DO UPDATE` |
 | List | `getChatThreads()` | `SELECT * FROM chats ORDER BY updated_at DESC` |
-| Delete | `deleteChatThread(phone)` | `DELETE FROM chats WHERE phone = ?` |
+| Delete | `deleteChatThread(userId)` | `DELETE FROM chats WHERE user_id = ?` |
 
 **Pub/Sub:** A manual listener pattern notifies the UI on writes:
 ```
@@ -149,7 +190,9 @@ CREATE TABLE messages (
     content    TEXT,                       -- Plaintext message body
     sender_id  TEXT NOT NULL,              -- "me" or sender phone
     created_at INTEGER NOT NULL,           -- Timestamp (ms)
-    status     TEXT DEFAULT 'sent'         -- 'sent' | 'delivered' | 'read'
+    received_at INTEGER,                   -- Timestamp when received
+    status     TEXT DEFAULT 'sent',        -- 'sent' | 'delivered' | 'read'
+    type       TEXT DEFAULT 'message'      -- 'message' | 'system'
 );
 CREATE INDEX idx_messages_created_at ON messages(created_at);
 
@@ -356,20 +399,6 @@ When a one-time pre-key is consumed in `receiveInitialMessage`, the OPK private 
 
 ### 🟡 Reliability Concerns
 
-#### 5.4 No Offline Message Queue
-
-If MQTT is disconnected when the user sends a message, the message is silently dropped:
-
-```typescript
-// send.ts L129-133
-if (!isConnected) {
-    console.log('MQTT not connected');
-    return;  // Message lost forever
-}
-```
-
-**Suggestion:** Implement a persistent outbox queue in SQLite. Save unsent messages with `status: 'pending'` and flush when MQTT reconnects.
-
 #### 5.5 Ratchet State Persisted on Every Message
 
 Every `encryptMessage()` and `decryptMessage()` call triggers `persistSession()` → full serialize + SQLite write. For rapid message exchanges, this is **heavy I/O**.
@@ -442,7 +471,7 @@ UPDATE chats SET unread_count = 0 WHERE phone = ?
 
 #### 5.11 Phone Number as Primary Identifier
 
-The `chats` table uses `phone TEXT PRIMARY KEY`. If a user changes their phone number, all their chat history becomes orphaned. Consider using a stable user ID as the primary key.
+~~The `chats` table uses `phone TEXT PRIMARY KEY`. If a user changes their phone number, all their chat history becomes orphaned. Consider using a stable user ID as the primary key.~~ *(Resolved: Migrated to `user_id` as primary key)*
 
 #### 5.12 Missing Structured Logging
 
@@ -478,7 +507,7 @@ Error handling across the storage layer uses `console.error` / `console.warn` wi
 | 🔴 P0 | Fix PRAGMA key SQL interpolation (#5.1) | Small |
 | 🔴 P0 | Remove hardcoded MQTT credentials (#5.2) | Medium |
 | 🟡 P1 | Implement `unread_count` management (#5.10) | Small |
-| 🟡 P1 | Add offline message queue (#5.4) | Medium |
+
 | 🟡 P1 | Use Base64 for Uint8Array serialization (#5.8) | Small |
 | 🟢 P2 | Debounce ratchet persistence (#5.5) | Medium |
 | 🟢 P2 | Stabilize chat identity beyond phone (#5.11) | Large |

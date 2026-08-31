@@ -1,6 +1,7 @@
-import { x3dhInitiator, x3dhResponder, PreKeyBundle, X3DHBundle } from "@/src/utils/crypto/x3dh";
+import { x3dhInitiator, x3dhResponder } from "@/src/utils/crypto/x3dh";
+import { PreKeyBundle, X3DHBundle } from "@/src/models/crypto";
 import LibsignalDezireModule from "expo-libsignal-dezire";
-import { Session } from "@/src/store/useSession";
+import { Session } from "@/src/models/store";
 import { toBase64 } from "@/src/utils/helpers/encoding";
 
 describe("X3DH Protocol Integration", () => {

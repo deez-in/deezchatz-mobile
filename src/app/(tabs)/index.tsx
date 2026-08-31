@@ -1,16 +1,14 @@
-import StyledButton from "@/src/components/StyledButton";
-import StyledText from "@/src/components/StyledText";
+import { StyledButton, StyledText, StyledTextInput } from "@/src/components/ui";
+import { ContactAvatar } from "@/src/components/shared";
 import { useTheme, useThemedStyles } from "@/src/hooks/useTheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { View, StyleSheet, Platform, FlatList, Pressable } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { getChatThreads, subscribeToChatList, ChatThread, DatabaseKeyMismatchError, StorageError } from "@/src/utils/storage";
-import StyledTextInput from "@/src/components/StyledTextInput";
-
-import { ContactAvatar } from "@/src/components/ContactAvatar";
-import { syncDeviceContacts } from "@/src/utils/sync/contactSync";
+import { getChatThreads, subscribeToChatList, DatabaseKeyMismatchError, StorageError } from "@/src/utils/db";
+import { ChatThread } from "@/src/models/db";
+import { syncDeviceContacts } from "@/src/utils/network/sync/contactSync";
 import useSession from "@/src/store/useSession";
 
 export default function Index() {

@@ -44,7 +44,7 @@ graph TD
 ## Features
 
 ### Current
-- [x] One-to-one text messages *(partially working — actively under development)*
+- [x] One-to-one text messages with offline queueing and background sync
 - [x] End-to-end encryption via Signal Protocol (X3DH + Double Ratchet)
 - [x] Encrypted local storage (SQLCipher via `expo-sqlite`)
 - [x] Contact syncing & bundle synchronization
