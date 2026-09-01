@@ -1,7 +1,7 @@
 {
   "cli": {
     "version": ">= 18.0.1",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "dev": {
@@ -34,7 +34,7 @@
     "production": {
       "autoIncrement": false,
       "env": {
-        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "715076094331-1mp3d22vos3jlsg2g9vnn4chc03d0hvn.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "715076094331-ppde4tts2v4rl5trcus96o02k6oao3jp.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "715076094331-oi6ismvp5s89vr2mh7sus5iac21ndoeo.apps.googleusercontent.com",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "715076094331-7mtbcp2hvd382r645ss6tsri18ekk6om.apps.googleusercontent.com",
         "EXPO_PUBLIC_MQTT_URL": "ssl://mqtt.deez.in:8883",

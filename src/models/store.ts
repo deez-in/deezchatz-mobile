@@ -1,7 +1,4 @@
-import type MqttClient from "expo-native-mqtt";
 import { PhoneIdentity } from "@/src/store/useSession";
-
-;
 
 export type AuthProvider = "google" | null;
 
@@ -36,5 +33,3 @@ export type Session = {
     initIdentityKey: () => Promise<Uint8Array>;
     initDeviceKeys: (phone: PhoneIdentity) => Promise<{ preKey: Uint8Array; devKey: Uint8Array }>;
 };
-
-;

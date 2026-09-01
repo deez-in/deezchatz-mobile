@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { View, Pressable, Platform, Switch, Dimensions } from "react-native";
 
 import { BottomSheet, Button, RNHostView, Host } from "@expo/ui";

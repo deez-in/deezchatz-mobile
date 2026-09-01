@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { View, Image, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { StyledText } from "@/src/components/ui";

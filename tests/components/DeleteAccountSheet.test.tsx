@@ -5,7 +5,6 @@ import { ThemeProvider } from "@/src/hooks/useTheme";
 
 // Mock @expo/ui components for test environment
 jest.mock("@expo/ui", () => {
-  const React = require("react");
   const { View, Pressable, Text } = require("react-native");
 
   return {

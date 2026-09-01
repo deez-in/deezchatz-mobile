@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { View, Pressable, Dimensions } from "react-native";
 
 import { BottomSheet, Button, RNHostView, Host } from "@expo/ui";

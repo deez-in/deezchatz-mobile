@@ -22,6 +22,22 @@
           }
         },
         {
+          "client_id": "715076094331-j7u5p73ufd6apub0gvk6bfonf721af89.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "in.deez.chatz",
+            "certificate_hash": "ec3bfc9f16074101f6a94531d021bf4bce5215b1"
+          }
+        },
+        {
+          "client_id": "715076094331-ppde4tts2v4rl5trcus96o02k6oao3jp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "in.deez.chatz",
+            "certificate_hash": "dba1c84b41a98a19caf911493b75bf0841759d44"
+          }
+        },
+        {
           "client_id": "715076094331-7mtbcp2hvd382r645ss6tsri18ekk6om.apps.googleusercontent.com",
           "client_type": 3
         }

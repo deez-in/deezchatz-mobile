@@ -11,9 +11,12 @@ modules/expo-native-mqtt/android/build
 # Temp files
 scripts/send-test-push.js
 
-
+#Credentials
+credentials/
+credential*
 #build files
 build/
+build-*
 
 #modules/libsignal-dezire
 modules/libsignal-dezire/android/build
