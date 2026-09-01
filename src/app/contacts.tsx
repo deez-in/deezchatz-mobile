@@ -1,5 +1,14 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, View, Dimensions } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+  Dimensions,
+  Linking,
+} from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { BottomSheet, Button, RNHostView, Host } from "@expo/ui";
@@ -26,27 +35,6 @@ export default function Contacts() {
     setContacts(fetched ?? []);
   }, []);
 
-  useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      const status = await getContactsPermissionStatus();
-      if (!isMounted) return;
-      setPermissionStatus(status);
-      if (status === "granted") {
-        const fetched = await getContacts();
-        if (isMounted) setContacts(fetched ?? []);
-      } else {
-        if (isMounted) {
-          setContacts([]);
-          setShowDisclosureSheet(true);
-        }
-      }
-    })();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
   const handleProceed = async () => {
     setShowDisclosureSheet(false);
     const status = await requestContactsPermission();
@@ -55,6 +43,61 @@ export default function Contacts() {
       await loadContacts();
     }
   };
+
+  const handleAllowAccessPress = useCallback(async () => {
+    if (Platform.OS === "android") {
+      setShowDisclosureSheet(true);
+    } else {
+      const status = await requestContactsPermission();
+      setPermissionStatus(status);
+      if (status === "granted") {
+        await loadContacts();
+      } else {
+        setContacts([]);
+        if (permissionStatus === "denied") {
+          Linking.openSettings().catch(() => {});
+        }
+      }
+    }
+  }, [loadContacts, permissionStatus]);
+
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      const currentStatus = await getContactsPermissionStatus();
+      if (!isMounted) return;
+
+      if (currentStatus === "granted") {
+        setPermissionStatus("granted");
+        const fetched = await getContacts();
+        if (isMounted) setContacts(fetched ?? []);
+      } else {
+        setPermissionStatus(currentStatus);
+        setContacts([]);
+
+        if (Platform.OS === "android") {
+          // On Android, show disclosure bottom sheet before requesting permission
+          if (isMounted) {
+            setShowDisclosureSheet(true);
+          }
+        } else {
+          // On iOS, trigger native permission dialog directly if not yet determined
+          if (currentStatus === "undetermined") {
+            const requestedStatus = await requestContactsPermission();
+            if (!isMounted) return;
+            setPermissionStatus(requestedStatus);
+            if (requestedStatus === "granted") {
+              const fetched = await getContacts();
+              if (isMounted) setContacts(fetched ?? []);
+            }
+          }
+        }
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const insets = useSafeAreaInsets();
 
@@ -65,7 +108,7 @@ export default function Contacts() {
       paddingHorizontal: Platform.OS === "ios" ? 16 : 12,
     },
     headingView: {
-      marginTop: 8,
+      marginTop: Platform.OS === "ios" ? 24 : 8,
       marginBottom: 12,
     },
     titleRow: {
@@ -277,7 +320,7 @@ export default function Contacts() {
               <Button
                 variant="filled"
                 label="Allow Access"
-                onPress={() => setShowDisclosureSheet(true)}
+                onPress={handleAllowAccessPress}
               />
             </Host>
           </View>
@@ -362,52 +405,54 @@ export default function Contacts() {
         }}
       />
 
-      <BottomSheet
-        isPresented={showDisclosureSheet}
-        onDismiss={() => setShowDisclosureSheet(false)}
-        showDragIndicator={true}
-      >
-        <RNHostView matchContents>
-          <View style={themedStyles.sheetContainer}>
-            {/* Header: icon + title/description side-by-side */}
-            <View style={themedStyles.sheetHeader}>
-              <View style={themedStyles.sheetIconContainer}>
-                <Ionicons
-                  name="people"
-                  size={24}
-                  color={colors.onPrimaryContainer as string}
-                />
+      {Platform.OS === "android" && (
+        <BottomSheet
+          isPresented={showDisclosureSheet}
+          onDismiss={() => setShowDisclosureSheet(false)}
+          showDragIndicator={true}
+        >
+          <RNHostView matchContents>
+            <View style={themedStyles.sheetContainer}>
+              {/* Header: icon + title/description side-by-side */}
+              <View style={themedStyles.sheetHeader}>
+                <View style={themedStyles.sheetIconContainer}>
+                  <Ionicons
+                    name="people"
+                    size={24}
+                    color={colors.onPrimaryContainer as string}
+                  />
+                </View>
+                <View style={themedStyles.sheetHeaderText}>
+                  <StyledText style={themedStyles.sheetTitle}>Contacts Access</StyledText>
+                  <StyledText style={themedStyles.sheetDescription}>
+                    DeezChatz accesses your contacts on-device so you can start conversations with friends. When you start a chat, only that recipient&apos;s phone number is queried securely to discover their encryption keys. Your contacts are not uploaded in bulk and are never stored on our servers.
+                  </StyledText>
+                </View>
               </View>
-              <View style={themedStyles.sheetHeaderText}>
-                <StyledText style={themedStyles.sheetTitle}>Contacts Access</StyledText>
-                <StyledText style={themedStyles.sheetDescription}>
-                  DeezChatz accesses your contacts on-device so you can start conversations with friends. When you start a chat, only that recipient&apos;s phone number is queried securely to discover their encryption keys. Your contacts are not uploaded in bulk and are never stored on our servers.
-                </StyledText>
-              </View>
-            </View>
 
-            {/* Action buttons side-by-side */}
-            <View style={themedStyles.sheetButtonRow}>
-              <Host matchContents>
-                <Button
-                  variant="outlined"
-                  label="Not Now"
-                  onPress={() => setShowDisclosureSheet(false)}
-                  style={themedStyles.cancelButton}
-                />
-              </Host>
-              <Host matchContents>
-                <Button
-                  variant="filled"
-                  label="Proceed"
-                  onPress={handleProceed}
-                  style={themedStyles.proceedButton}
-                />
-              </Host>
+              {/* Action buttons side-by-side */}
+              <View style={themedStyles.sheetButtonRow}>
+                <Host matchContents>
+                  <Button
+                    variant="outlined"
+                    label="Not Now"
+                    onPress={() => setShowDisclosureSheet(false)}
+                    style={themedStyles.cancelButton}
+                  />
+                </Host>
+                <Host matchContents>
+                  <Button
+                    variant="filled"
+                    label="Proceed"
+                    onPress={handleProceed}
+                    style={themedStyles.proceedButton}
+                  />
+                </Host>
+              </View>
             </View>
-          </View>
-        </RNHostView>
-      </BottomSheet>
+          </RNHostView>
+        </BottomSheet>
+      )}
     </SafeAreaView>
   );
 }

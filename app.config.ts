@@ -49,7 +49,8 @@ const config: ExpoConfig = {
     [
       "expo-contacts",
       {
-        contactsPermission: "Allow $(PRODUCT_NAME) to access your contacts.",
+        contactsPermission:
+          "DeezChatz accesses your contacts on-device to help you find and start conversations with friends. Your contacts are never uploaded in bulk or stored on our servers.",
       },
     ],
     [

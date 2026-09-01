@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Pressable, Dimensions } from "react-native";
+import { View, Pressable, Dimensions, Platform } from "react-native";
 
 import { BottomSheet, Button, RNHostView, Host } from "@expo/ui";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
@@ -8,10 +8,10 @@ import { useTheme, useThemedStyles } from "@/src/hooks/useTheme";
 import { StyledText } from "@/src/components/ui";
 
 export interface DeleteAccountSheetProps {
-    isPresented: boolean;
-    onDismiss: () => void;
-    onConfirmDelete: () => void;
-    isDeleting?: boolean;
+  isPresented: boolean;
+  onDismiss: () => void;
+  onConfirmDelete: () => void;
+  isDeleting?: boolean;
 }
 
 
@@ -59,7 +59,7 @@ export default function DeleteAccountSheet({
     container: {
       width: Dimensions.get("window").width,
       paddingHorizontal: 20,
-      backgroundColor: colors.surface,
+      backgroundColor: Platform.OS === "android" ? colors.surface : undefined,
       paddingTop: 16,
       paddingBottom: 28,
       gap: 16,
@@ -142,8 +142,8 @@ export default function DeleteAccountSheet({
   const deleteButtonLabel = isDeleting
     ? "Deleting..."
     : isConfirmed && countdown > 0
-    ? `Delete (${countdown}s)`
-    : "Delete Account";
+      ? `Delete (${countdown}s)`
+      : "Delete Account";
 
   return (
     <BottomSheet

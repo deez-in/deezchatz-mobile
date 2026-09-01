@@ -8,10 +8,10 @@ import { useTheme, useThemedStyles } from "@/src/hooks/useTheme";
 import { StyledText } from "@/src/components/ui";
 
 export interface BlockReportSheetProps {
-    isPresented: boolean;
-    onDismiss: () => void;
-    contactName: string;
-    onConfirmBlock: (shouldReport: boolean) => void;
+  isPresented: boolean;
+  onDismiss: () => void;
+  contactName: string;
+  onConfirmBlock: (shouldReport: boolean) => void;
 }
 
 
@@ -28,7 +28,7 @@ export default function BlockReportSheet({
     container: {
       width: Dimensions.get("window").width,
       paddingHorizontal: 20,
-      backgroundColor: colors.surface,
+      backgroundColor: Platform.OS === "android" ? colors.surface : undefined,
       paddingTop: 16,
       paddingBottom: 24,
       gap: 16

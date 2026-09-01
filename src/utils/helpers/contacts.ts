@@ -17,12 +17,20 @@ export async function requestContactsPermission(): Promise<PermissionStatus> {
     return status;
 }
 
+export function formatContactLabel(label?: string): string {
+    if (!label) return "Mobile";
+    const cleaned = label.replace(/^_\$!<(.+)>!\$_$/, "$1").trim();
+    if (cleaned.toLowerCase() === "homefax") return "Home Fax";
+    if (cleaned.toLowerCase() === "workfax") return "Work Fax";
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+}
+
 /**
  * Fetches contacts from the device with phone numbers split into separate entries.
  */
 export async function getContacts(): Promise<SplitContact[] | null> {
     const splitContacts: SplitContact[] = [];
-    const { status } = await requestPermissionsAsync();
+    const { status } = await getPermissionsAsync();
 
     if (status !== "granted") {
         return splitContacts;
@@ -58,7 +66,7 @@ export async function getContacts(): Promise<SplitContact[] | null> {
                 lastName: contact.familyName,
                 id: contact.id + "/" + j,
                 number: phone.number,
-                label: phone.label ?? "mobile",
+                label: formatContactLabel(phone.label),
             });
         }
     }
