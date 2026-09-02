@@ -29,16 +29,19 @@ export async function saveContact(phone: string, userId: string, picture?: strin
     );
 }
 
+import { normalizePhone } from '@/src/utils/helpers/phone';
+
 /**
  * Resolves a phone number to a server UUID.
  */
 export async function getContactByPhone(phone: string): Promise<string | undefined> {
     const db = await openPrimaryDatabase();
-    const row = await db.getFirstAsync<{ user_id: string }>(
-        'SELECT user_id FROM contacts WHERE phone = ?',
-        phone
+    const rows = await db.getAllAsync<{ user_id: string, phone: string }>(
+        'SELECT user_id, phone FROM contacts'
     );
-    return row?.user_id;
+    const normalizedTarget = normalizePhone(phone);
+    const match = rows.find(r => r.phone && normalizePhone(r.phone) === normalizedTarget);
+    return match?.user_id;
 }
 
 /**

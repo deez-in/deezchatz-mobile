@@ -181,7 +181,7 @@ export default function Index() {
   const renderThread = useCallback(({ item }: { item: ChatThread }) => (
     <Pressable
       style={themedStyles.threadItem}
-      onPress={() => router.push({ pathname: "/chat/[userId]", params: { userId: item.phone || item.user_id } })}
+      onPress={() => router.push({ pathname: "/chat/[userId]", params: { userId: item.phone || item.user_id, name: item.name || '' } })}
     >
       <View style={styles.avatarWrapper}>
         <ContactAvatar

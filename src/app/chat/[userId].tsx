@@ -51,7 +51,8 @@ import { withRetry, BailoutError } from "@/src/utils/helpers/retry";
 
 
 export default function Chat() {
-  const [name, setName] = useState<string>();
+  const { userId, id, name: initialName }: { userId: string; id?: string; name?: string } = useLocalSearchParams();
+  const [name, setName] = useState<string>(initialName || "");
   const [picture, setPicture] = useState<string | null>(null);
   const [message, setMessage] = useState<string>("");
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
@@ -92,7 +93,6 @@ export default function Chat() {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
   }, []);
 
-  const { userId, id, name: initialName }: { userId: string; id?: string; name?: string } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const session = useSession();
@@ -342,6 +342,10 @@ export default function Chat() {
           })
           .catch((e) => console.warn('Bundle sync failed:', e));
 
+        if (!info?.name && initialName) {
+          if (isMounted) setName(initialName);
+        }
+        
         return;
       }
 
