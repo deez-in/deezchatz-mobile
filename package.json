@@ -1,7 +1,7 @@
 {
   "name": "deezchatz-mobile",
   "main": "index.js",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",

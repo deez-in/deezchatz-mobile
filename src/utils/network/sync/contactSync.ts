@@ -38,6 +38,8 @@ export async function syncDeviceContacts(force = false): Promise<void> {
 
         const deviceContacts = await Contact.getAllDetails([
             ContactField.FULL_NAME,
+            ContactField.GIVEN_NAME,
+            ContactField.FAMILY_NAME,
             ContactField.PHONES,
         ]);
 
@@ -53,7 +55,9 @@ export async function syncDeviceContacts(force = false): Promise<void> {
                 continue;
             }
 
-            const fullName = contact.fullName?.trim();
+            // @ts-ignore - fallback to legacy name property in case native module hasn't updated
+            const rawName = contact.fullName || contact.name || [contact.givenName, contact.familyName].filter(Boolean).join(' ');
+            const fullName = rawName?.trim();
             if (!fullName) continue;
 
             for (const phone of contact.phones) {

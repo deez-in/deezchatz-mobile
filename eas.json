@@ -40,6 +40,12 @@
         "EXPO_PUBLIC_MQTT_URL": "ssl://mqtt.deez.in:8883",
         "EXPO_PUBLIC_API_URL": "https://api.chatz.deez.in"
       }
+    },
+    "production-apk": {
+      "extends": "production",
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {

@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Deploy to Play Store Internal Testing
 
 on:
   release:
@@ -11,8 +11,8 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    name: Build & Sign APK
+  build-and-deploy:
+    name: Build AAB & Deploy to Internal Track
     runs-on: ubuntu-latest
 
     steps:
@@ -42,23 +42,31 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build Signed Production APK locally
-        run: eas build --platform android --profile production-apk --local --non-interactive --output ./deezchatz.apk
+      - name: Build Production AAB locally
+        run: eas build --platform android --profile production --local --non-interactive --output ./deezchatz.aab
 
-      - name: Rename APK with version
+      - name: Upload to Google Play Internal Testing
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
+          packageName: in.deez.chatz
+          releaseFiles: ./deezchatz.aab
+          track: internal
+
+      - name: Rename AAB with version
         run: |
           VERSION="${GITHUB_REF_NAME:-dev}"
-          mv deezchatz.apk "deezchatz-${VERSION}.apk"
+          cp deezchatz.aab "deezchatz-${VERSION}.aab"
 
-      - name: Upload APK as artifact
+      - name: Upload AAB as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: deezchatz-apk
-          path: deezchatz-*.apk
+          name: deezchatz-aab
+          path: deezchatz-*.aab
           retention-days: 30
 
-      - name: Attach APK to GitHub Release
+      - name: Attach AAB to GitHub Release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: deezchatz-*.apk
+          files: deezchatz-*.aab
