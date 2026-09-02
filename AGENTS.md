@@ -302,6 +302,7 @@ Automated unit tests are written with **Jest** and **React Native Testing Librar
 
 ## CI/CD Pipeline
 
-Automated Android APK builds are handled via GitHub Actions in `.github/workflows/build-android.yml`.
-- Runs local EAS builds on Ubuntu runners for releases or manual triggers (`workflow_dispatch`).
-- Outputs standalone `deezchatz-*.apk` binaries attached to releases.
+Automated Android builds and deployment are handled via GitHub Actions in `.github/workflows/build-android.yml`.
+- Uses a matrix build strategy to produce both signed production APK and AAB binaries locally via EAS CLI.
+- Automatically deploys the AAB to the Google Play Store internal testing track.
+- Attaches both `deezchatz-*.apk` and `deezchatz-*.aab` artifacts to GitHub Releases on publish.

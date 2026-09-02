@@ -177,11 +177,12 @@ bun run test
 
 ## CI/CD & Automated Builds
 
-The repository includes GitHub Actions workflows (`.github/workflows/build-android.yml`) for automated APK generation:
+The repository includes GitHub Actions workflows (`.github/workflows/build-android.yml`) for automated APK and AAB generation and deployment:
 
 - **Triggers**: On publishing a new GitHub release or via manual `workflow_dispatch`.
-- **EAS Local Build**: Uses EAS CLI locally in GitHub Actions to build standalone Android APKs without requiring Expo cloud credits.
-- **Artifacts**: Automatically attaches generated `.apk` binaries to GitHub Releases and uploads workflow build artifacts.
+- **EAS Local Matrix Build**: Uses EAS CLI locally in GitHub Actions with a matrix strategy to build standalone Android APK and AAB binaries without requiring Expo cloud credits.
+- **Play Store Deployment**: Automatically uploads the generated `.aab` to Google Play Store Internal Testing.
+- **Artifacts & Releases**: Automatically attaches generated `.apk` and `.aab` binaries to GitHub Releases and uploads workflow build artifacts.
 
 ---
 
