@@ -6,6 +6,7 @@ import { Session } from '@/src/models/store';
 import { processIncomingMessage } from '@/src/utils/messaging';
 import { PushNotificationEvent } from '@/src/models/notifications';
 import { showMessageNotification } from './local';
+import { syncDeviceContacts } from '@/src/utils/network/sync/contactSync';
 
 export const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND-NOTIFICATION-TASK';
 
@@ -39,11 +40,18 @@ TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error, execu
     if (senderId) {
       displaySender = senderId;
       try {
-        const contact = await getContactInfo(senderId);
+        let contact = await getContactInfo(senderId);
         if (contact?.name) {
           displaySender = contact.name;
-        } else if (contact?.phone) {
-          displaySender = contact.phone;
+        } else {
+          // Sync with local contact list to update names
+          await syncDeviceContacts(true);
+          contact = await getContactInfo(senderId);
+          if (contact?.name) {
+            displaySender = contact.name;
+          } else if (contact?.phone) {
+            displaySender = contact.phone;
+          }
         }
       } catch {
         // Storage might not be open if app is completely closed — fallback to senderId

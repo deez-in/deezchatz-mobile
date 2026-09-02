@@ -31,6 +31,7 @@ import {
 } from '@/src/utils/db';
 import { Message } from "@/src/models/db";
 import { syncContactBundle } from "@/src/utils/network/sync/bundleSync";
+import { syncDeviceContacts } from "@/src/utils/network/sync/contactSync";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -328,19 +329,29 @@ export default function Chat() {
           }
         }
 
-        // Fire-and-forget bundle sync (respects 15-min cooldown)
+        // 1. Local contact sync — always runs whenever this page is opened (no cooldown)
+        syncDeviceContacts(true)
+          .then(async () => {
+            if (!isMounted) return;
+            const updated = await getContactInfo(resolvedUUID);
+            if (isMounted && updated?.name) {
+              setName(updated.name);
+            }
+          })
+          .catch((e) => console.warn('[Chat] Local contact sync failed:', e));
+
+        // 2. Online bundle sync — respects 15-min cooldown
         syncContactBundle(resolvedUUID)
           .then((result) => {
             if (!isMounted || !result) return;
             if (result.keyChanged) setShowKeyChangeBanner(true);
             if (result.pictureChanged) {
-              // Re-read updated picture from DB
               getContactInfo(resolvedUUID).then((updated) => {
                 if (isMounted && updated?.picture) setPicture(updated.picture);
               });
             }
           })
-          .catch((e) => console.warn('Bundle sync failed:', e));
+          .catch((e) => console.warn('[Chat] Online bundle sync failed:', e));
 
         if (!info?.name && initialName) {
           if (isMounted) setName(initialName);

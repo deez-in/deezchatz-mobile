@@ -44,7 +44,12 @@ export async function showMessageNotification(
   // Ensure channel exists before scheduling on Android (critical for headless background tasks)
   await setupNotificationChannel();
 
-  const title = sender.startsWith('Message from') ? sender : `Message from ${sender}`;
+  const isUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(sender.trim());
+  const displaySender = isUUID ? 'New message' : sender.trim();
+
+  const title = displaySender.startsWith('Message from') || displaySender.toLowerCase() === 'new message'
+    ? (displaySender.toLowerCase() === 'new message' ? 'New message' : displaySender)
+    : `Message from ${displaySender}`;
 
   await Notifications.scheduleNotificationAsync({
     content: {

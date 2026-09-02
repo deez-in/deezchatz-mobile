@@ -5,6 +5,7 @@
 
 import { openPrimaryDatabase } from '@/src/clients/sqliteClient';
 import { ContactMapping } from '@/src/models/db';
+import { normalizePhone } from '@/src/utils/helpers/phone';
 
 /**
  * Saves or updates a mapping between phone number and UUID, along with optional server picture and contact name.
@@ -28,8 +29,6 @@ export async function saveContact(phone: string, userId: string, picture?: strin
         now
     );
 }
-
-import { normalizePhone } from '@/src/utils/helpers/phone';
 
 /**
  * Resolves a phone number to a server UUID.

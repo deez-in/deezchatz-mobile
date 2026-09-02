@@ -9,6 +9,7 @@
 
 import { fetchSyncBundle } from "@/src/utils/api/bundle";
 import { updateContactBundle, shouldSyncContact } from "@/src/utils/db/contacts";
+import { syncDeviceContacts } from "@/src/utils/network/sync/contactSync";
 import { saveSystemMessage } from "@/src/utils/db/messages";
 import { clearSession } from "@/src/utils/crypto/ratchet";
 import { notifyChatListListeners } from "@/src/utils/db/chatList";
@@ -32,6 +33,11 @@ export async function syncContactBundle(
     keyChanged: boolean;
     pictureChanged: boolean;
 } | null> {
+    // Sync local device contact list first so any name updates are reflected locally
+    await syncDeviceContacts().catch((e) =>
+        console.warn(`[BundleSync] Contact sync failed:`, e)
+    );
+
     // Check cooldown unless forced
     if (!force) {
         const shouldSync = await shouldSyncContact(userId);
