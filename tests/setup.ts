@@ -116,3 +116,8 @@ jest.mock('expo-libsignal-dezire', () => ({
   ratchetFree: jest.fn(),
 }));
 
+// Mock uuid
+jest.mock('uuid', () => ({
+  v4: jest.fn().mockReturnValue('mock-uuid-v4'),
+}));
+

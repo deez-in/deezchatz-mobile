@@ -1,15 +1,27 @@
-import { StyledButton, StyledText, StyledTextInput } from "@/src/components/ui";
-import { useTheme, useThemedStyles } from "@/src/hooks/useTheme";
-import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Contact, ContactField } from "expo-contacts";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, StyleSheet, FlatList, NativeScrollEvent, NativeSyntheticEvent, Pressable, KeyboardAvoidingView, Platform, Keyboard, Alert } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
+import * as Haptics from "expo-haptics";
+import { Contact, ContactField } from "expo-contacts";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { MenuView } from "@expo/ui/community/menu";
+
+import { StyledButton, StyledText, StyledTextInput } from "@/src/components/ui";
 import { BlockReportSheet, ContactAvatar } from "@/src/components/shared";
-import { ChatBubble } from "@/src/components/chat";
+import { ChatBubble, VoiceRecordBar } from "@/src/components/chat";
+import { useTheme, useThemedStyles } from "@/src/hooks/useTheme";
+import useSession from "@/src/store/useSession";
 import { reportUser } from "@/src/utils/api/user";
 import { sendInitialMessage, sendMessage } from '@/src/utils/messaging';
+import {
+  startRecordingStub,
+  stopRecordingStub,
+  discardRecordingStub,
+  sendVoiceMessageStub,
+  playPreviewStub,
+  stopPreviewStub,
+} from '@/src/utils/audio';
 import {
   openChatDatabase,
   closeChatDatabase,
@@ -32,11 +44,6 @@ import {
 import { Message } from "@/src/models/db";
 import { syncContactBundle } from "@/src/utils/network/sync/bundleSync";
 import { syncDeviceContacts } from "@/src/utils/network/sync/contactSync";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
-import useSession from "@/src/store/useSession";
 import {
   initSender,
   encryptMessage,
@@ -64,6 +71,13 @@ export default function Chat() {
   const [showKeyChangeBanner, setShowKeyChangeBanner] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [showBlockSheet, setShowBlockSheet] = useState(false);
+
+  // Voice recording state
+  const [voiceState, setVoiceState] = useState<'idle' | 'recording' | 'reviewing'>('idle');
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recordingDurationRef = useRef(0);
 
   useEffect(() => {
     if (Platform.OS === 'ios') return;
@@ -314,6 +328,121 @@ export default function Chat() {
     }
   };
 
+  // Keep recording duration ref in sync
+  useEffect(() => {
+    recordingDurationRef.current = recordingDuration;
+  }, [recordingDuration]);
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleStartRecording = useCallback(async () => {
+    if (isBlocked) return;
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch {
+      // Haptics not supported in some environments
+    }
+
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+    }
+
+    setRecordingDuration(0);
+    recordingDurationRef.current = 0;
+    setVoiceState('recording');
+    setIsPlayingPreview(false);
+
+    await startRecordingStub();
+
+    recordingTimerRef.current = setInterval(() => {
+      setRecordingDuration((prev) => prev + 1);
+    }, 1000);
+  }, [isBlocked]);
+
+  const handleStopRecording = useCallback(async () => {
+    if (voiceState !== 'recording') return;
+
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {
+      // Haptics not supported in some environments
+    }
+
+    const duration = recordingDurationRef.current;
+    await stopRecordingStub(duration);
+    setVoiceState('reviewing');
+  }, [voiceState]);
+
+  const handleDiscardRecording = useCallback(async () => {
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {
+      // Haptics not supported in some environments
+    }
+
+    await discardRecordingStub();
+    if (isPlayingPreview) {
+      await stopPreviewStub();
+    }
+
+    setVoiceState('idle');
+    setRecordingDuration(0);
+    recordingDurationRef.current = 0;
+    setIsPlayingPreview(false);
+  }, [isPlayingPreview]);
+
+  const handleSendVoiceRecording = useCallback(async () => {
+    if (voiceState !== 'reviewing') return;
+
+    const duration = recordingDurationRef.current;
+    if (isPlayingPreview) {
+      await stopPreviewStub();
+    }
+
+    try {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {
+      // Haptics not supported in some environments
+    }
+
+    await sendVoiceMessageStub({
+      recipientId: resolvedUUID || userId,
+      duration,
+    });
+
+    setVoiceState('idle');
+    setRecordingDuration(0);
+    recordingDurationRef.current = 0;
+    setIsPlayingPreview(false);
+  }, [voiceState, resolvedUUID, userId, isPlayingPreview]);
+
+  const handleTogglePlayPreview = useCallback(async () => {
+    if (isPlayingPreview) {
+      await stopPreviewStub();
+      setIsPlayingPreview(false);
+    } else {
+      await playPreviewStub();
+      setIsPlayingPreview(true);
+    }
+  }, [isPlayingPreview]);
+
   useEffect(() => {
     let isMounted = true;
     const resolveIdentity = async () => {
@@ -385,7 +514,7 @@ export default function Chat() {
     return () => {
       isMounted = false;
     };
-  }, [id, userId, resolvedUUID]);
+  }, [id, userId, resolvedUUID, initialName]);
 
   // Check blocked status
   useEffect(() => {
@@ -700,21 +829,69 @@ export default function Chat() {
           { backgroundColor: colors.background }
         ])}
       >
-        <StyledTextInput
-          style={styles.messageInput}
-          placeholder={isBlocked ? "You have blocked this contact" : "Send message"}
-          value={message}
-          onChangeText={setMessage}
-          multiline
-          editable={!isBlocked}
-        />
-        <StyledButton
-          onPress={() => handleSendMessage(message)}
-          style={styles.messageButton}
-          disabled={isBlocked || !message.trim()}
-        >
-          <Ionicons name="send" size={24} color={colors.onPrimary as string} />
-        </StyledButton>
+        {voiceState === 'idle' ? (
+          <>
+            <StyledTextInput
+              style={styles.messageInput}
+              placeholder={isBlocked ? "You have blocked this contact" : "Send message"}
+              value={message}
+              onChangeText={setMessage}
+              multiline
+              editable={!isBlocked}
+            />
+            {message.trim().length > 0 ? (
+              <StyledButton
+                onPress={() => handleSendMessage(message)}
+                style={styles.messageButton}
+                disabled={isBlocked}
+                testID="send-message-button"
+                accessibilityLabel="Send message"
+              >
+                <Ionicons name="send" size={24} color={colors.onPrimary as string} />
+              </StyledButton>
+            ) : (
+              <StyledButton
+                onPressIn={handleStartRecording}
+                onPressOut={handleStopRecording}
+                style={styles.messageButton}
+                disabled={isBlocked}
+                testID="voice-mic-button"
+                accessibilityLabel="Record voice message"
+              >
+                <Ionicons name="mic" size={24} color={colors.onPrimary as string} />
+              </StyledButton>
+            )}
+          </>
+        ) : (
+          <>
+            <VoiceRecordBar
+              mode={voiceState}
+              durationSeconds={recordingDuration}
+              onDiscard={handleDiscardRecording}
+              onTogglePlayPreview={handleTogglePlayPreview}
+              isPlayingPreview={isPlayingPreview}
+            />
+            {voiceState === 'recording' ? (
+              <StyledButton
+                onPressOut={handleStopRecording}
+                style={[styles.messageButton, styles.recordingMicButton]}
+                testID="voice-recording-mic-button"
+                accessibilityLabel="Release to finish recording"
+              >
+                <Ionicons name="mic" size={24} color="#FFFFFF" />
+              </StyledButton>
+            ) : (
+              <StyledButton
+                onPress={handleSendVoiceRecording}
+                style={styles.messageButton}
+                testID="voice-send-button"
+                accessibilityLabel="Send voice message"
+              >
+                <Ionicons name="send" size={24} color={colors.onPrimary as string} />
+              </StyledButton>
+            )}
+          </>
+        )}
       </View>
 
       <BlockReportSheet
@@ -790,6 +967,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     margin: 4,
     borderRadius: 25,
+  },
+  recordingMicButton: {
+    backgroundColor: '#FF453A',
   },
   messageBar: {
     flex: 0,
