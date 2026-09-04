@@ -76,6 +76,7 @@ export default function Chat() {
     dbError,
     isUserNotFound,
     handleSendMessage,
+    handleSendVoice,
   } = useChatSession({
     userId,
     initialName,
@@ -112,7 +113,12 @@ export default function Chat() {
     discardRecording,
     sendVoiceRecording,
     togglePlayPreview,
-  } = useVoiceRecording({ isBlocked });
+  } = useVoiceRecording({
+    isBlocked,
+    onSendVoice: async (cacheUri, duration) => {
+      await handleSendVoice(cacheUri, duration, name);
+    },
+  });
 
   const onSendTextMessage = useCallback(
     (text: string) => {
@@ -123,8 +129,8 @@ export default function Chat() {
   );
 
   const onSendVoiceMessage = useCallback(() => {
-    sendVoiceRecording(resolvedUUID || userId);
-  }, [sendVoiceRecording, resolvedUUID, userId]);
+    sendVoiceRecording();
+  }, [sendVoiceRecording]);
 
   const themedStyles = useThemedStyles((themeColors) => ({
     container: {

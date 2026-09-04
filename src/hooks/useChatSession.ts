@@ -3,7 +3,12 @@ import { Alert } from "react-native";
 
 import useSession from "@/src/store/useSession";
 import { Message } from "@/src/models/db";
-import { sendInitialMessage, sendMessage } from "@/src/utils/messaging";
+import {
+  sendInitialMessage,
+  sendMessage,
+  sendInitialVoiceMessage,
+  sendVoiceMessage,
+} from "@/src/utils/messaging";
 import {
   openChatDatabase,
   closeChatDatabase,
@@ -284,6 +289,163 @@ export function useChatSession({
     [dbError, scrollToBottom, resolveSessionAndSend]
   );
 
+  const resolveSessionAndSendVoice = useCallback(
+    async (cacheUri: string, contactName?: string) => {
+      if (!resolvedUUID) {
+        const isPhone = userId.startsWith("+") || /^\d+$/.test(userId);
+        if (!isPhone) {
+          throw new Error(
+            "Invalid state: resolvedUUID is null but userId is not a phone number"
+          );
+        }
+
+        const result = await sendInitialVoiceMessage({
+          session,
+          recipientIdentifier: userId,
+          cacheUri,
+          name: contactName || initialName || "",
+          initSender: (userIdParam, sharedSecret, receiverPub, identityKey, deviceId) =>
+            initSender(userIdParam, sharedSecret, receiverPub, identityKey, deviceId),
+          encrypt: (userIdParam, plaintext, ad) =>
+            encryptMessage(userIdParam, plaintext, ad),
+        });
+
+        if (result && result.userId) {
+          setResolvedUUID(result.userId);
+        }
+        return;
+      }
+
+      let hasSession = await isRatchetInitialized(resolvedUUID);
+      if (!hasSession) {
+        await loadRatchetSession(resolvedUUID);
+        hasSession = await isRatchetInitialized(resolvedUUID);
+      }
+
+      if (hasSession) {
+        let identityKey = await getIdentityKey(resolvedUUID);
+        let deviceId = await getDeviceId(resolvedUUID);
+
+        if (!identityKey || !deviceId) {
+          try {
+            await openChatDatabase(resolvedUUID);
+            identityKey = await getIdentityKey(resolvedUUID);
+            deviceId = await getDeviceId(resolvedUUID);
+          } catch (e) {
+            console.warn(
+              "Failed to re-open database during session recovery check:",
+              e
+            );
+          }
+        }
+
+        if (identityKey && deviceId) {
+          await sendVoiceMessage({
+            session,
+            recipientUserId: resolvedUUID,
+            recipientDeviceId: deviceId,
+            cacheUri,
+            encrypt: (userIdParam, plaintext, ad) =>
+              encryptMessage(userIdParam, plaintext, ad),
+            recipientIdentityKey: identityKey,
+          });
+          return;
+        }
+
+        console.warn(
+          "Session broken: missing identity key or device ID after retry. Clearing session and retrying."
+        );
+        await clearSession(resolvedUUID);
+      }
+
+      const phone = await getContactByUserId(resolvedUUID);
+      if (!phone) {
+        throw new Error("Cannot re-initialize session: contact phone not found");
+      }
+      const result = await sendInitialVoiceMessage({
+        session,
+        recipientIdentifier: phone,
+        cacheUri,
+        initSender: (userIdParam, sharedSecret, receiverPub, identityKey, deviceId) =>
+          initSender(userIdParam, sharedSecret, receiverPub, identityKey, deviceId),
+        encrypt: (userIdParam, plaintext, ad) =>
+          encryptMessage(userIdParam, plaintext, ad),
+      });
+      if (result && result.userId) {
+        setResolvedUUID(result.userId);
+      }
+    },
+    [resolvedUUID, userId, session, initialName]
+  );
+
+  const handleSendVoice = useCallback(
+    async (
+      cacheUri: string,
+      duration?: number,
+      contactName?: string
+    ) => {
+      setIsUserNotFound(false);
+      if (!cacheUri) return;
+      if (dbError) {
+        Alert.alert(
+          "Cannot Send",
+          "Chat history is unavailable. Please restart the app."
+        );
+        return;
+      }
+
+      scrollToBottom?.();
+
+      try {
+        await withRetry(
+          async () => {
+            try {
+              await resolveSessionAndSendVoice(cacheUri, contactName);
+            } catch (error: any) {
+              const isRecoverableStorageError =
+                error instanceof StorageError && error.recoverable;
+              const isRetryableError =
+                error instanceof OutboxPersistError || isRecoverableStorageError;
+
+              if (isRetryableError) {
+                throw error;
+              } else {
+                throw new BailoutError(error);
+              }
+            }
+          },
+          { maxAttempts: 3, initialDelay: 500, backoffFactor: 1 }
+        );
+      } catch (error: any) {
+        if (error instanceof UserNotFoundError) {
+          setIsUserNotFound(true);
+        } else if (error instanceof BundleFetchError) {
+          Alert.alert(
+            "Offline",
+            "You must be online to start a new conversation. Please check your connection and try again.",
+            [{ text: "OK", style: "cancel" }]
+          );
+        } else if (error instanceof EncryptionError) {
+          console.error("Encryption failed:", error);
+          Alert.alert(
+            "Encryption Error",
+            "Could not encrypt your voice message. The session may be corrupted.",
+            [{ text: "OK", style: "cancel" }]
+          );
+        } else {
+          console.error("Failed to send voice message:", error);
+          Alert.alert(
+            "Send Failed",
+            error?.message || "Your voice message could not be sent. Please try again.",
+            [{ text: "OK", style: "cancel" }]
+          );
+        }
+        throw error;
+      }
+    },
+    [dbError, scrollToBottom, resolveSessionAndSendVoice]
+  );
+
   return {
     resolvedUUID,
     setResolvedUUID,
@@ -291,6 +453,7 @@ export function useChatSession({
     dbError,
     isUserNotFound,
     handleSendMessage,
+    handleSendVoice,
   };
 }
 

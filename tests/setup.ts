@@ -134,16 +134,48 @@ jest.mock('uuid', () => ({
 
 // Mock expo-file-system
 jest.mock('expo-file-system', () => {
-  class MockFile {
-    exists: boolean = true;
+  class MockDirectory {
+    get exists(): boolean {
+      return true;
+    }
     uri: string;
-    constructor(...uris: string[]) {
-      this.uri = uris.join('/');
+    constructor(...uris: any[]) {
+      this.uri = uris
+        .map((u) => (typeof u === 'object' && u?.uri ? u.uri : String(u)))
+        .join('/');
+    }
+    create(): void {}
+  }
+
+  class MockFile {
+    get exists(): boolean {
+      return true;
+    }
+    uri: string;
+    content: Uint8Array = new Uint8Array([1, 2, 3]);
+    constructor(...uris: any[]) {
+      this.uri = uris
+        .map((u) => (typeof u === 'object' && u?.uri ? u.uri : String(u)))
+        .join('/');
+    }
+    create(): void {}
+    write(bytes: Uint8Array): void {
+      this.content = bytes;
+    }
+    async copy(target: MockFile): Promise<void> {
+      target.content = this.content;
+    }
+    async arrayBuffer(): Promise<ArrayBuffer> {
+      return this.content.buffer.slice(
+        this.content.byteOffset,
+        this.content.byteOffset + this.content.byteLength
+      ) as ArrayBuffer;
     }
     delete(): void {}
   }
 
   return {
+    Directory: MockDirectory,
     File: MockFile,
     Paths: {
       document: { uri: '/mock/documents' },
@@ -151,6 +183,11 @@ jest.mock('expo-file-system', () => {
     },
   };
 });
+
+const mockPlaybackListeners = new Set<(status: any) => void>();
+export const mockEmitPlaybackStatus = (status: any) => {
+  mockPlaybackListeners.forEach((fn) => fn(status));
+};
 
 // Mock expo-audio-opus
 jest.mock('expo-audio-opus', () => ({
@@ -175,7 +212,26 @@ jest.mock('expo-audio-opus', () => ({
     removeListeners: jest.fn(),
   },
   addRecordingMeteringListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
-  addPlaybackStatusListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+  addPlaybackStatusListener: jest.fn((listener: (status: any) => void) => {
+    mockPlaybackListeners.add(listener);
+    return {
+      remove: jest.fn(() => mockPlaybackListeners.delete(listener)),
+    };
+  }),
+}));
+
+// Mock expo-contacts
+jest.mock('expo-contacts', () => ({
+  requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+  getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+  getContactsAsync: jest.fn().mockResolvedValue({ data: [] }),
+  PermissionStatus: {
+    GRANTED: 'granted',
+    DENIED: 'denied',
+    UNDETERMINED: 'undetermined',
+  },
+  Fields: {},
+  SortTypes: {},
 }));
 
 

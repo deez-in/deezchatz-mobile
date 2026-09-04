@@ -131,4 +131,45 @@ describe("useVoiceRecording hook", () => {
     expect(result.current.voiceState).toBe("idle");
     expect(result.current.recordingDuration).toBe(0);
   });
+
+  it("calls custom onSendVoice callback when provided", async () => {
+    const mockOnSendVoice = jest.fn().mockResolvedValue(undefined);
+    const { result } = await renderHook(() =>
+      useVoiceRecording({ onSendVoice: mockOnSendVoice })
+    );
+
+    await act(async () => {
+      await result.current.startRecording();
+      await result.current.stopRecording();
+    });
+
+    expect(result.current.voiceState).toBe("reviewing");
+
+    await act(async () => {
+      await result.current.sendVoiceRecording();
+    });
+
+    expect(mockOnSendVoice).toHaveBeenCalledWith(
+      expect.stringContaining(".opus"),
+      expect.any(Number)
+    );
+    expect(result.current.voiceState).toBe("idle");
+  });
+
+  it("automatically stops recording at 60 seconds", async () => {
+    const { result } = await renderHook(() => useVoiceRecording());
+
+    await act(async () => {
+      await result.current.startRecording();
+    });
+
+    expect(result.current.voiceState).toBe("recording");
+
+    await act(async () => {
+      jest.advanceTimersByTime(60000);
+    });
+
+    expect(result.current.recordingDuration).toBe(60);
+    expect(result.current.voiceState).toBe("reviewing");
+  });
 });

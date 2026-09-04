@@ -18,10 +18,11 @@ export type VoiceState = "idle" | "recording" | "reviewing";
 
 export interface UseVoiceRecordingOptions {
   isBlocked?: boolean;
+  onSendVoice?: (cacheUri: string, duration: number) => Promise<void>;
 }
 
 export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
-  const { isBlocked = false } = options;
+  const { isBlocked = false, onSendVoice } = options;
 
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -61,6 +62,41 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
       }
       stopPreviewAudio().catch(() => {});
     };
+  }, []);
+
+  const stopRecording = useCallback(async () => {
+    if (voiceStateRef.current !== "recording") return;
+
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {
+      // Haptics not supported in some environments
+    }
+
+    const measuredDuration = recordingDurationRef.current;
+
+    try {
+      const result = await stopAudioRecording();
+      const finalDuration =
+        measuredDuration > 0 ? measuredDuration : (result.durationSeconds ?? 0);
+      setRecordingDuration(finalDuration);
+      recordingDurationRef.current = finalDuration;
+
+      if (result.uri) {
+        setRecordedUri(result.uri);
+        recordedUriRef.current = result.uri;
+      }
+    } catch {
+      // Retain the measured duration if native stop fails
+    }
+
+    voiceStateRef.current = "reviewing";
+    setVoiceState("reviewing");
   }, []);
 
   const startRecording = useCallback(async () => {
@@ -110,44 +146,14 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
     }
 
     recordingTimerRef.current = setInterval(() => {
-      setRecordingDuration((prev) => prev + 1);
-    }, 1000);
-  }, [isBlocked]);
-
-  const stopRecording = useCallback(async () => {
-    if (voiceStateRef.current !== "recording") return;
-
-    if (recordingTimerRef.current) {
-      clearInterval(recordingTimerRef.current);
-      recordingTimerRef.current = null;
-    }
-
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch {
-      // Haptics not supported in some environments
-    }
-
-    const measuredDuration = recordingDurationRef.current;
-
-    try {
-      const result = await stopAudioRecording();
-      const finalDuration =
-        measuredDuration > 0 ? measuredDuration : (result.durationSeconds ?? 0);
-      setRecordingDuration(finalDuration);
-      recordingDurationRef.current = finalDuration;
-
-      if (result.uri) {
-        setRecordedUri(result.uri);
-        recordedUriRef.current = result.uri;
+      recordingDurationRef.current += 1;
+      const current = recordingDurationRef.current;
+      setRecordingDuration(current);
+      if (current >= 60) {
+        stopRecording();
       }
-    } catch {
-      // Retain the measured duration if native stop fails
-    }
-
-    voiceStateRef.current = "reviewing";
-    setVoiceState("reviewing");
-  }, []);
+    }, 1000);
+  }, [isBlocked, stopRecording]);
 
   const discardRecording = useCallback(async () => {
     if (recordingTimerRef.current) {
@@ -174,11 +180,12 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
   }, []);
 
   const sendVoiceRecording = useCallback(
-    async (recipientId: string) => {
+    async (recipientId?: string) => {
       if (voiceStateRef.current !== "reviewing") return;
 
       const duration = recordingDurationRef.current;
       const uri = recordedUriRef.current;
+      if (!uri) return;
 
       if (isPlayingPreview) {
         await stopPreviewAudio();
@@ -190,11 +197,15 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
         // Haptics not supported in some environments
       }
 
-      await sendVoiceMessage({
-        recipientId,
-        duration,
-        uri: uri ?? undefined,
-      });
+      if (onSendVoice) {
+        await onSendVoice(uri, duration);
+      } else if (recipientId) {
+        await sendVoiceMessage({
+          recipientId,
+          duration,
+          uri,
+        });
+      }
 
       voiceStateRef.current = "idle";
       setVoiceState("idle");
@@ -204,7 +215,7 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
       recordedUriRef.current = null;
       setIsPlayingPreview(false);
     },
-    [isPlayingPreview]
+    [isPlayingPreview, onSendVoice]
   );
 
   const togglePlayPreview = useCallback(async () => {
