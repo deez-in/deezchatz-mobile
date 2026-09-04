@@ -5,7 +5,8 @@
 
 import LibsignalDezireModule from 'expo-libsignal-dezire';
 
-import { fromBase64, toString } from '../helpers/encoding';
+import { fromBase64 } from '../helpers/encoding';
+import { decodePayload } from './payloadFraming';
 
 import { x3dhResponder } from '../crypto/x3dh';
 import { loadOpk } from '../crypto/oneTimePreKeys';
@@ -16,8 +17,6 @@ import {
     ReceiveMessageParams,
     ReceiveResult,
 } from '@/src/models/messaging';
-
-
 
 /**
  * Receives and processes an initial message (performs X3DH responder).
@@ -62,12 +61,22 @@ export async function receiveInitialMessage({
             return null;
         }
 
-        const plaintextStr = toString(plaintext);
+        const decoded = decodePayload(plaintext);
+
+        if (decoded.type === 'voice') {
+            return {
+                type: 'voice',
+                audioBytes: decoded.audioBytes,
+                senderUserId,
+                sharedSecret,
+            };
+        }
 
         return {
-            sharedSecret,
-            plaintext: plaintextStr,
+            type: 'text',
+            content: decoded.text,
             senderUserId,
+            sharedSecret,
         };
     } catch (e) {
         console.error('Error processing receive message:', e);
@@ -97,10 +106,19 @@ export async function receiveMessage({
             return null;
         }
 
-        const plaintextStr = toString(plaintext);
+        const decoded = decodePayload(plaintext);
+
+        if (decoded.type === 'voice') {
+            return {
+                type: 'voice',
+                audioBytes: decoded.audioBytes,
+                senderUserId,
+            };
+        }
 
         return {
-            plaintext: plaintextStr,
+            type: 'text',
+            content: decoded.text,
             senderUserId,
         };
     } catch (e) {

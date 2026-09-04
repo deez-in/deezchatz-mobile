@@ -1,5 +1,5 @@
 export type MessageStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
-export type MessageType = 'message' | 'system';
+export type MessageType = 'message' | 'system' | 'voice';
 
 export interface Message {
     id: string;

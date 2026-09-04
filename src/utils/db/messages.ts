@@ -58,6 +58,7 @@ export async function getMessages(chatId: string): Promise<Message[]> {
 export async function saveMessage(
     chatId: string,
     message: {
+        id?: string;
         content: string;
         sender_id: string;
         status?: Message['status'];
@@ -67,7 +68,7 @@ export async function saveMessage(
     }
 ): Promise<string> {
     const db = requireChatDatabase(chatId);
-    const id = generateMessageId();
+    const id = message.id ?? generateMessageId();
     const created_at = message.created_at ?? Date.now();
     const received_at = message.received_at ?? null;
 
@@ -83,7 +84,8 @@ export async function saveMessage(
     );
 
     // Update chat list in primary DB
-    await upsertChatThread(chatId, message.content);
+    const preview = message.type === 'voice' ? '🎤 Voice message' : message.content;
+    await upsertChatThread(chatId, preview);
     notifyListeners(chatId);
     return id;
 }
@@ -137,15 +139,15 @@ export async function updateMessageStatusWithAutoOpen(
 }
 
 /**
- * Saves a message, opening and closing the DB connection itself.
- * Use this in background contexts (MQTT handler, inbox retry) where the
- * chat screen may not be open and managing the DB lifecycle.
+ * Saves a message using auto-open/close lifecycle.
+ * Use in background contexts (MQTT handler, inbox retry).
  *
  * @throws StorageError on write failure
  */
 export async function saveMessageWithAutoOpen(
     chatId: string,
     message: {
+        id?: string;
         content: string;
         sender_id: string;
         status?: Message['status'];
@@ -158,7 +160,7 @@ export async function saveMessageWithAutoOpen(
     const db = await openChatDatabase(chatId);
 
     try {
-        const id = generateMessageId();
+        const id = message.id ?? generateMessageId();
         const created_at = message.created_at ?? Date.now();
         const received_at = message.received_at ?? null;
 
@@ -173,7 +175,8 @@ export async function saveMessageWithAutoOpen(
             message.type ?? 'message'
         );
 
-        await upsertChatThread(chatId, message.content);
+        const preview = message.type === 'voice' ? '🎤 Voice message' : message.content;
+        await upsertChatThread(chatId, preview);
         notifyListeners(chatId);
         return id;
     } finally {

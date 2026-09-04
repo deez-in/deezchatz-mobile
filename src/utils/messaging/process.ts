@@ -18,6 +18,8 @@ import {
     BlockedContactError,
 } from '@/src/utils/db';
 import { syncDeviceContacts } from '@/src/utils/network/sync/contactSync';
+import { saveReceivedVoiceMessage } from '@/src/utils/audio/audioStorage';
+import { generateMessageId } from '../helpers/formatting';
 
 /**
  * Processes a raw MQTT message (already parsed from JSON).
@@ -69,12 +71,29 @@ export async function processIncomingMessage(
             throw new Error(`Failed to decrypt initial message from ${senderUserId}`);
         }
 
+        let content: string;
+        let threadPreview: string;
+        let messageId: string | undefined;
+        let messageType: 'message' | 'voice';
+
+        if (result.type === 'voice') {
+            messageId = generateMessageId();
+            const permanentUri = await saveReceivedVoiceMessage(result.audioBytes, messageId);
+            content = permanentUri;
+            threadPreview = '🎤 Voice message';
+            messageType = 'voice';
+        } else {
+            content = result.content;
+            threadPreview = result.content;
+            messageType = 'message';
+        }
+
         // Fetch their bundle to resolve their phone number and save contact mapping!
         try {
             const bundle = await fetchPreKeyBundle(senderUserId);
             if (bundle && bundle.phone) {
                 await saveContact(bundle.phone, senderUserId, bundle.picture);
-                await upsertChatThread(senderUserId, result.plaintext, bundle.phone);
+                await upsertChatThread(senderUserId, threadPreview, bundle.phone);
                 syncDeviceContacts().catch(e => console.warn('Failed to sync device contacts after incoming message:', e));
             }
         } catch (err) {
@@ -101,13 +120,15 @@ export async function processIncomingMessage(
 
         const senderTimestamp = typeof payload.timestamp === 'number' ? payload.timestamp : received_at;
         await saveMessageWithAutoOpen(senderUserId, {
-            content: result.plaintext,
+            id: messageId,
+            content,
             sender_id: senderUserId,
             created_at: senderTimestamp,
             received_at: received_at,
+            type: messageType,
         });
 
-        return result.plaintext;
+        return content;
     } 
     
     if (payload.ciphertext && payload.header) {
@@ -130,15 +151,31 @@ export async function processIncomingMessage(
             throw new Error(`Failed to decrypt subsequent message from ${senderUserId}`);
         }
 
+        let content: string;
+        let messageId: string | undefined;
+        let messageType: 'message' | 'voice';
+
+        if (result.type === 'voice') {
+            messageId = generateMessageId();
+            const permanentUri = await saveReceivedVoiceMessage(result.audioBytes, messageId);
+            content = permanentUri;
+            messageType = 'voice';
+        } else {
+            content = result.content;
+            messageType = 'message';
+        }
+
         const senderTimestamp = typeof payload.timestamp === 'number' ? payload.timestamp : received_at;
         await saveMessageWithAutoOpen(senderUserId, {
-            content: result.plaintext,
+            id: messageId,
+            content,
             sender_id: senderUserId,
             created_at: senderTimestamp,
             received_at: received_at,
+            type: messageType,
         });
 
-        return result.plaintext;
+        return content;
     } 
     
     throw new Error(`Unrecognized message payload shape from ${senderUserId}`);

@@ -21,7 +21,7 @@ import useMqttStore from '@/src/store/useMqttStore';
 import { PreKeyBundle } from '@/src/models/crypto';
 import LibsignalDezireModule, { RatchetEncryptResult } from 'expo-libsignal-dezire';
 
-import { toBase64, fromBase64, toBytes } from '../helpers/encoding';
+import { toBase64, fromBase64 } from '../helpers/encoding';
 import {
     saveMessage,
     saveMessageWithAutoOpen,
@@ -45,7 +45,12 @@ import { syncDeviceContacts } from '@/src/utils/network/sync/contactSync';
 import {
     SendInitialMessageParams,
     SendMessageParams,
+    SendVoiceMessageParams,
+    SendInitialVoiceMessageParams,
 } from '@/src/models/messaging';
+import { encodeTextPayload, encodeVoicePayload } from './payloadFraming';
+import { saveSentVoiceMessage, readAudioBytes } from '@/src/utils/audio/audioStorage';
+import { generateMessageId } from '../helpers/formatting';
 
 
 // On failure, increments the retry counter (auto-fails after MAX_RETRIES).
@@ -138,7 +143,7 @@ export async function sendInitialMessage({
     let ciphertext: RatchetEncryptResult;
     try {
         const ad = await constructSenderAD(session.iKey, preKeyBundle.identityKey);
-        const result = await encrypt(resolvedUserId, toBytes(message), ad);
+        const result = await encrypt(resolvedUserId, encodeTextPayload(message), ad);
         if (!result) {
             throw new EncryptionError(resolvedPhone);
         }
@@ -229,7 +234,7 @@ export async function sendMessage({
     let ciphertext: RatchetEncryptResult;
     try {
         const ad = await constructSenderAD(session.iKey, recipientIdentityKey);
-        const result = await encrypt(recipientUserId, toBytes(message), ad);
+        const result = await encrypt(recipientUserId, encodeTextPayload(message), ad);
         if (!result) {
             throw new EncryptionError(recipientUserId);
         }
@@ -278,4 +283,192 @@ export async function sendMessage({
         console.error('Publish attempt failed (will retry from outbox):', e);
         // Non-fatal — message is safely persisted in outbox
     }
+}
+
+/**
+ * Sends the initial voice message to a contact (performs X3DH key exchange).
+ */
+export async function sendInitialVoiceMessage({
+    session,
+    recipientIdentifier,
+    cacheUri,
+    name,
+    initSender,
+    encrypt,
+}: SendInitialVoiceMessageParams): Promise<{ userId: string; messageId: string }> {
+    const { isConnected } = useMqttStore.getState();
+    if (!isConnected) {
+        throw new BundleFetchError(recipientIdentifier);
+    }
+
+    let preKeyBundle: PreKeyBundle | undefined;
+    try {
+        preKeyBundle = await fetchPreKeyBundle(recipientIdentifier);
+
+        if (!preKeyBundle || !preKeyBundle.identityKey || !preKeyBundle.userId || !preKeyBundle.deviceId) {
+            throw new BundleFetchError(recipientIdentifier);
+        }
+    } catch (e: any) {
+        if (e.status === 404) throw new UserNotFoundError(recipientIdentifier);
+        if (e instanceof UserNotFoundError || e instanceof BundleFetchError) throw e;
+        throw new BundleFetchError(recipientIdentifier, e);
+    }
+
+    const resolvedUserId = preKeyBundle.userId;
+    const resolvedPhone = preKeyBundle.phone || recipientIdentifier;
+
+    let sharedSecret: Uint8Array;
+    let ephemeralKey: Uint8Array;
+    try {
+        const x3dhResult = await x3dhInitiator(session, preKeyBundle);
+        sharedSecret = x3dhResult.sharedSecret;
+        ephemeralKey = x3dhResult.ephemeralKey;
+        await initSender(
+            resolvedUserId,
+            sharedSecret,
+            fromBase64(preKeyBundle.signedPreKey),
+            preKeyBundle.identityKey,
+            preKeyBundle.deviceId
+        );
+    } catch (e) {
+        throw new EncryptionError(resolvedPhone, e as Error);
+    }
+
+    const messageId = generateMessageId();
+    const permanentUri = await saveSentVoiceMessage(cacheUri, messageId);
+    const audioBytes = await readAudioBytes(permanentUri);
+
+    let ciphertext: RatchetEncryptResult;
+    try {
+        const ad = await constructSenderAD(session.iKey, preKeyBundle.identityKey);
+        const result = await encrypt(resolvedUserId, encodeVoicePayload(audioBytes), ad);
+        if (!result) {
+            throw new EncryptionError(resolvedPhone);
+        }
+        ciphertext = result;
+    } catch (e) {
+        await clearSession(resolvedUserId).catch(() => {});
+        if (e instanceof EncryptionError) throw e;
+        throw new EncryptionError(resolvedPhone, e as Error);
+    }
+
+    const now = Date.now();
+    const senderIdentityPub = await LibsignalDezireModule.genPubKey(session.iKey);
+    const payload = {
+        identityKey: toBase64(senderIdentityPub),
+        ephemeralKey: toBase64(ephemeralKey),
+        spkId: preKeyBundle.spkId ?? 1,
+        opkId: preKeyBundle.opk?.id ?? null,
+        ciphertext: toBase64(ciphertext.ciphertext),
+        header: toBase64(ciphertext.header),
+        timestamp: now,
+    };
+    const payloadStr = JSON.stringify(payload);
+
+    const topic = buildMessageTopic(
+        resolvedUserId, preKeyBundle.deviceId,
+        session.userId!, session.deviceId!
+    );
+
+    let publishSuccess = false;
+    try {
+        publishSuccess = await publishMessage(topic, payloadStr);
+    } catch (e) {
+        console.error('MQTT publish failed for initial voice message:', e);
+    }
+
+    if (!publishSuccess) {
+        await clearSession(resolvedUserId).catch(() => {});
+        throw new Error("Voice message has not been sent. Please try again.");
+    }
+
+    try {
+        await saveContact(resolvedPhone, resolvedUserId, preKeyBundle.picture, name);
+        syncDeviceContacts().catch(e => console.warn('Failed to sync device contacts after initial voice message:', e));
+
+        await saveMessageWithAutoOpen(resolvedUserId, {
+            id: messageId,
+            content: permanentUri,
+            sender_id: 'me',
+            status: 'sent',
+            created_at: now,
+            type: 'voice',
+        });
+
+        const outboxId = await saveToOutbox(resolvedUserId, messageId, topic, payloadStr);
+        await markOutboxSent(outboxId);
+
+        await upsertChatThread(resolvedUserId, '🎤 Voice message', resolvedPhone);
+    } catch (e) {
+        console.error('Failed to persist sent voice message metadata:', e);
+    }
+
+    return { userId: resolvedUserId, messageId };
+}
+
+/**
+ * Sends a subsequent voice message (ratchet already initialized).
+ */
+export async function sendVoiceMessage({
+    session,
+    recipientUserId,
+    recipientDeviceId,
+    cacheUri,
+    encrypt,
+    recipientIdentityKey,
+}: SendVoiceMessageParams): Promise<{ messageId: string }> {
+    const messageId = generateMessageId();
+    const permanentUri = await saveSentVoiceMessage(cacheUri, messageId);
+    const audioBytes = await readAudioBytes(permanentUri);
+
+    let ciphertext: RatchetEncryptResult;
+    try {
+        const ad = await constructSenderAD(session.iKey, recipientIdentityKey);
+        const result = await encrypt(recipientUserId, encodeVoicePayload(audioBytes), ad);
+        if (!result) {
+            throw new EncryptionError(recipientUserId);
+        }
+        ciphertext = result;
+    } catch (e) {
+        if (e instanceof EncryptionError) throw e;
+        throw new EncryptionError(recipientUserId, e as Error);
+    }
+
+    const now = Date.now();
+    const payload = {
+        ciphertext: toBase64(ciphertext.ciphertext),
+        header: toBase64(ciphertext.header),
+        timestamp: now,
+    };
+    const payloadStr = JSON.stringify(payload);
+
+    let outboxId: number;
+    const topic = buildMessageTopic(
+        recipientUserId, recipientDeviceId,
+        session.userId!, session.deviceId!
+    );
+    try {
+        await saveMessage(recipientUserId, {
+            id: messageId,
+            content: permanentUri,
+            sender_id: 'me',
+            status: 'pending',
+            created_at: now,
+            type: 'voice',
+        });
+        outboxId = await saveToOutbox(recipientUserId, messageId, topic, payloadStr);
+    } catch (e) {
+        throw new OutboxPersistError(recipientUserId, e as Error);
+    }
+
+    try {
+        const { isConnected } = useMqttStore.getState();
+        if (isConnected) {
+            await attemptPublish(outboxId, recipientUserId, messageId, topic, payloadStr);
+        }
+    } catch (e) {
+        console.error('Publish attempt failed for voice message (will retry from outbox):', e);
+    }
+
+    return { messageId };
 }
