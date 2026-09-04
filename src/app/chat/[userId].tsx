@@ -1,77 +1,53 @@
-import { StyledButton, StyledText, StyledTextInput } from "@/src/components/ui";
-import { useTheme, useThemedStyles } from "@/src/hooks/useTheme";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  View,
+  FlatList,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+} from "react-native";
+import { useLocalSearchParams } from "expo-router";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Contact, ContactField } from "expo-contacts";
-import { View, StyleSheet, FlatList, NativeScrollEvent, NativeSyntheticEvent, Pressable, KeyboardAvoidingView, Platform, Keyboard, Alert } from "react-native";
-import { MenuView } from "@expo/ui/community/menu";
-import { BlockReportSheet, ContactAvatar } from "@/src/components/shared";
-import { ChatBubble } from "@/src/components/chat";
-import { reportUser } from "@/src/utils/api/user";
-import { sendInitialMessage, sendMessage } from '@/src/utils/messaging';
-import {
-  openChatDatabase,
-  closeChatDatabase,
-  getMessages,
-  subscribeToMessages,
-  DatabaseKeyMismatchError,
-  StorageError,
-  BundleFetchError,
-  EncryptionError,
-  OutboxPersistError,
-  UserNotFoundError,
-  getContactByPhone,
-  getContactByUserId,
-  blockContact,
-  unblockContact,
-  isContactBlocked,
-  getContactInfo,
-  acknowledgeKeyChange,
-} from '@/src/utils/db';
-import { Message } from "@/src/models/db";
-import { syncContactBundle } from "@/src/utils/network/sync/bundleSync";
-import { syncDeviceContacts } from "@/src/utils/network/sync/contactSync";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
-import useSession from "@/src/store/useSession";
-import {
-  initSender,
-  encryptMessage,
-  isRatchetInitialized,
-  getIdentityKey,
-  getDeviceId,
-  loadRatchetSession,
-  clearSession,
-} from "@/src/utils/crypto";
-import { PreKeyBundle } from "@/src/models/crypto";
-import { apiRequest } from "@/src/clients/apiClient";
-import { withRetry, BailoutError } from "@/src/utils/helpers/retry";
 
+import { StyledText } from "@/src/components/ui";
+import { BlockReportSheet } from "@/src/components/shared";
+import {
+  ChatBubble,
+  ChatHeader,
+  ChatBanners,
+  ChatInputBar,
+} from "@/src/components/chat";
+import { useTheme, useThemedStyles } from "@/src/hooks/useTheme";
+import { useChatSession } from "@/src/hooks/useChatSession";
+import { useContactIdentity } from "@/src/hooks/useContactIdentity";
+import { useVoiceRecording } from "@/src/hooks/useVoiceRecording";
+import { Message } from "@/src/models/db";
 
 export default function Chat() {
-  const { userId, id, name: initialName }: { userId: string; id?: string; name?: string } = useLocalSearchParams();
-  const [name, setName] = useState<string>(initialName || "");
-  const [picture, setPicture] = useState<string | null>(null);
+  const {
+    userId,
+    id,
+    name: initialName,
+  }: { userId: string; id?: string; name?: string } = useLocalSearchParams();
   const [message, setMessage] = useState<string>("");
-  const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [dbError, setDbError] = useState<string | null>(null);
-  const [isUserNotFound, setIsUserNotFound] = useState(false);
-  const [showKeyChangeBanner, setShowKeyChangeBanner] = useState(false);
-  const [isBlocked, setIsBlocked] = useState(false);
-  const [showBlockSheet, setShowBlockSheet] = useState(false);
+
+  const flatListRef = useRef<FlatList<Message>>(null);
+  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
 
   useEffect(() => {
-    if (Platform.OS === 'ios') return;
+    if (Platform.OS === "ios") return;
 
-    const showSubscription = Keyboard.addListener('keyboardDidShow', (e) => {
+    const showSubscription = Keyboard.addListener("keyboardDidShow", (e) => {
       setKeyboardHeight(e.endCoordinates.height + 8);
     });
-    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
+    const hideSubscription = Keyboard.addListener("keyboardDidHide", () => {
       setKeyboardHeight(0);
     });
 
@@ -81,410 +57,102 @@ export default function Chat() {
     };
   }, []);
 
-  const flatListRef = useRef<FlatList<Message>>(null);
-
-  // Track scroll position — in inverted list, offset 0 = bottom (latest messages)
-  const onScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const { contentOffset } = event.nativeEvent;
-    // In inverted list, scrolling "up" (to older messages) increases offset
-    setShowScrollButton(contentOffset.y > 150);
-  }, []);
+  const onScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const { contentOffset } = event.nativeEvent;
+      setShowScrollButton(contentOffset.y > 150);
+    },
+    []
+  );
 
   const scrollToBottom = useCallback(() => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
   }, []);
 
-  const insets = useSafeAreaInsets();
-  const { colors } = useTheme();
-  const session = useSession();
+  const {
+    resolvedUUID,
+    setResolvedUUID,
+    chatMessages,
+    dbError,
+    isUserNotFound,
+    handleSendMessage,
+    handleSendVoice,
+  } = useChatSession({
+    userId,
+    initialName,
+    scrollToBottom,
+  });
 
-  const [resolvedUUID, setResolvedUUID] = useState<string | null>(null);
+  const {
+    name,
+    picture,
+    isBlocked,
+    showBlockSheet,
+    setShowBlockSheet,
+    showKeyChangeBanner,
+    dismissKeyChangeBanner,
+    handleConfirmBlock,
+    handleUnblock,
+  } = useContactIdentity({
+    userId,
+    id,
+    initialName,
+    resolvedUUID,
+    setResolvedUUID,
+    chatMessages,
+  });
 
-  // Auto-resolve UUID on mount
-  useEffect(() => {
-    let isMounted = true;
-    const resolveChat = async () => {
-      const isPhone = userId.startsWith("+") || /^\d+$/.test(userId);
-      if (isPhone) {
-        const uuid = await getContactByPhone(userId);
-        if (isMounted && uuid) {
-          setResolvedUUID(uuid);
-        }
-      } else {
-        if (isMounted) {
-          setResolvedUUID(userId);
-        }
-      }
-    };
-    resolveChat();
-    return () => {
-      isMounted = false;
-    };
-  }, [userId]);
+  const {
+    voiceState,
+    recordingDuration,
+    isPlayingPreview,
+    voiceStateRef,
+    isRecordingJustStoppedRef,
+    startRecording,
+    stopRecording,
+    discardRecording,
+    sendVoiceRecording,
+    togglePlayPreview,
+  } = useVoiceRecording({
+    isBlocked,
+    onSendVoice: async (cacheUri, duration) => {
+      await handleSendVoice(cacheUri, duration, name);
+    },
+  });
 
-  useEffect(() => {
-    let isMounted = true;
+  const onSendTextMessage = useCallback(
+    (text: string) => {
+      setMessage("");
+      handleSendMessage(text, name, (draft) => setMessage(draft));
+    },
+    [handleSendMessage, name]
+  );
 
-    const initChat = async (attempt = 0) => {
-      if (!resolvedUUID) {
-        if (isMounted) setChatMessages([]);
-        return;
-      }
-      try {
-        await openChatDatabase(resolvedUUID);
-        if (!isMounted) return;
+  const onSendVoiceMessage = useCallback(() => {
+    sendVoiceRecording();
+  }, [sendVoiceRecording]);
 
-        const msgs = await getMessages(resolvedUUID);
-        if (isMounted) {
-          setChatMessages(msgs);
-          setDbError(null);
-        }
-      } catch (error) {
-        if (!isMounted) return;
-        if (error instanceof DatabaseKeyMismatchError) {
-          setDbError(
-            'Chat history could not be decrypted and may be unrecoverable.'
-          );
-        } else if (((error instanceof StorageError && error.recoverable) || (error as Error)?.message?.includes('closed resource')) && attempt < 3) {
-          // Transient error — retry with backoff
-          setTimeout(() => initChat(attempt + 1), 300 * (attempt + 1));
-        } else {
-          setDbError('Failed to load chat history. Please try again.');
-          console.error('Failed to init chat DB:', error);
-        }
-      }
-    };
-
-    initChat();
-
-    // Subscribe to live message updates
-    const unsubscribe = subscribeToMessages((updatedChatId) => {
-      if (updatedChatId === resolvedUUID && isMounted) {
-        getMessages(resolvedUUID)
-          .then(setChatMessages)
-          .catch(e => console.error('Failed to refresh messages:', e));
-      }
-    });
-
-    return () => {
-      isMounted = false;
-      unsubscribe();
-      if (resolvedUUID) {
-        closeChatDatabase(resolvedUUID).catch(() => { });
-      }
-    };
-  }, [resolvedUUID]);
-
-  const resolveSessionAndSend = async (msg: string) => {
-    if (!resolvedUUID) {
-      // Initial Message Flow
-      const isPhone = userId.startsWith("+") || /^\d+$/.test(userId);
-      if (!isPhone) {
-        throw new Error("Invalid state: resolvedUUID is null but userId is not a phone number");
-      }
-
-      const result = await sendInitialMessage({
-        session,
-        recipientIdentifier: userId, // phone number
-        message: msg,
-        name: initialName || name,
-        initSender: (userIdParam, sharedSecret, receiverPub, identityKey, deviceId) =>
-          initSender(userIdParam, sharedSecret, receiverPub, identityKey, deviceId),
-        encrypt: (userIdParam, plaintext, ad) => encryptMessage(userIdParam, plaintext, ad),
-      });
-
-      if (result && result.userId) {
-        setResolvedUUID(result.userId);
-      }
-      return;
-    }
-
-    // Existing Session Flow
-    let hasSession = await isRatchetInitialized(resolvedUUID);
-    if (!hasSession) {
-      await loadRatchetSession(resolvedUUID);
-      hasSession = await isRatchetInitialized(resolvedUUID);
-    }
-
-    if (hasSession) {
-      let identityKey = await getIdentityKey(resolvedUUID);
-      let deviceId = await getDeviceId(resolvedUUID);
-      
-      if (!identityKey || !deviceId) {
-        try {
-          await openChatDatabase(resolvedUUID);
-          identityKey = await getIdentityKey(resolvedUUID);
-          deviceId = await getDeviceId(resolvedUUID);
-        } catch (e) {
-          console.warn('Failed to re-open database during session recovery check:', e);
-        }
-      }
-
-      if (identityKey && deviceId) {
-        await sendMessage({
-          session,
-          recipientUserId: resolvedUUID,
-          recipientDeviceId: deviceId,
-          message: msg,
-          encrypt: (userIdParam, plaintext, ad) => encryptMessage(userIdParam, plaintext, ad),
-          recipientIdentityKey: identityKey,
-        });
-        return;
-      }
-      
-      console.warn('Session broken: missing identity key or device ID after retry. Clearing session and retrying.');
-      await clearSession(resolvedUUID);
-    }
-
-    // Re-initialize session using phone lookup if needed
-    const phone = await getContactByUserId(resolvedUUID);
-    if (!phone) {
-      throw new Error("Cannot re-initialize session: contact phone not found");
-    }
-    const result = await sendInitialMessage({
-      session,
-      recipientIdentifier: phone,
-      message: msg,
-      initSender: (userIdParam, sharedSecret, receiverPub, identityKey, deviceId) =>
-        initSender(userIdParam, sharedSecret, receiverPub, identityKey, deviceId),
-      encrypt: (userIdParam, plaintext, ad) => encryptMessage(userIdParam, plaintext, ad),
-    });
-    if (result && result.userId) {
-      setResolvedUUID(result.userId);
-    }
-  };
-
-  const handleSendMessage = async (msg: string) => {
-    setIsUserNotFound(false);
-    if (!msg.trim()) return;
-    if (dbError) {
-      Alert.alert('Cannot Send', 'Chat history is unavailable. Please restart the app.');
-      return;
-    }
-
-    setMessage("");
-    scrollToBottom();
-
-    try {
-      await withRetry(
-        async () => {
-          try {
-            await resolveSessionAndSend(msg);
-          } catch (error: any) {
-            const isRecoverableStorageError = error instanceof StorageError && error.recoverable;
-            const isRetryableError = error instanceof OutboxPersistError || isRecoverableStorageError;
-
-            if (isRetryableError) {
-              throw error; // Let withRetry handle it
-            } else {
-              throw new BailoutError(error); // Wrap to stop withRetry
-            }
-          }
-        },
-        { maxAttempts: 3, initialDelay: 500, backoffFactor: 1 }
-      );
-    } catch (error: any) {
-      if (error instanceof UserNotFoundError) {
-        setIsUserNotFound(true);
-        setMessage(msg); // restore drafted message
-      } else if (error instanceof BundleFetchError) {
-        Alert.alert(
-          'Offline',
-          'You must be online to start a new conversation. Please check your connection and try again.',
-          [{ text: 'OK', style: 'cancel' }]
-        );
-        setMessage(msg);
-      } else if (error instanceof EncryptionError) {
-        console.error('Encryption failed:', error);
-        Alert.alert(
-          'Encryption Error',
-          'Could not encrypt your message. The session may be corrupted.',
-          [{ text: 'OK', style: 'cancel' }]
-        );
-        setMessage(msg);
-      } else {
-        console.error('Failed to send message:', error);
-        Alert.alert(
-          'Send Failed',
-          error?.message || 'Your message could not be sent. Please try again.',
-          [{ text: 'OK', style: 'cancel' }]
-        );
-        setMessage(msg);
-      }
-    }
-  };
-
-  useEffect(() => {
-    let isMounted = true;
-    const resolveIdentity = async () => {
-      if (resolvedUUID) {
-        const info = await getContactInfo(resolvedUUID);
-        if (info && isMounted) {
-          if (info.name) setName(info.name);
-          if (info.picture) setPicture(info.picture);
-
-          // Check for pre-existing unacknowledged key changes
-          if (info.identity_key_changed === 1) {
-            setShowKeyChangeBanner(true);
-          }
-        }
-
-        // 1. Local contact sync — always runs whenever this page is opened (no cooldown)
-        syncDeviceContacts(true)
-          .then(async () => {
-            if (!isMounted) return;
-            const updated = await getContactInfo(resolvedUUID);
-            if (isMounted && updated?.name) {
-              setName(updated.name);
-            }
-          })
-          .catch((e) => console.warn('[Chat] Local contact sync failed:', e));
-
-        // 2. Online bundle sync — respects 15-min cooldown
-        syncContactBundle(resolvedUUID)
-          .then((result) => {
-            if (!isMounted || !result) return;
-            if (result.keyChanged) setShowKeyChangeBanner(true);
-            if (result.pictureChanged) {
-              getContactInfo(resolvedUUID).then((updated) => {
-                if (isMounted && updated?.picture) setPicture(updated.picture);
-              });
-            }
-          })
-          .catch((e) => console.warn('[Chat] Online bundle sync failed:', e));
-
-        if (!info?.name && initialName) {
-          if (isMounted) setName(initialName);
-        }
-        
-        return;
-      }
-
-      if (id) {
-        try {
-          const contact = new Contact(id.split("/")[0]);
-          const details = await contact.getDetails([ContactField.FULL_NAME]);
-          if (isMounted && details) {
-            setName(details.fullName || "");
-          }
-        } catch (e) {
-          console.warn("Failed to fetch contact by device ID:", e);
-        }
-      } else {
-        const isPhone = userId.startsWith("+") || /^\d+$/.test(userId);
-        if (isPhone) {
-          if (isMounted) setName(userId);
-        } else if (resolvedUUID) {
-          const phone = await getContactByUserId(resolvedUUID);
-          if (isMounted) setName(phone || userId);
-        }
-      }
-    };
-
-    resolveIdentity();
-    return () => {
-      isMounted = false;
-    };
-  }, [id, userId, resolvedUUID]);
-
-  // Check blocked status
-  useEffect(() => {
-    let isMounted = true;
-    const checkBlocked = async () => {
-      const targetId = resolvedUUID || userId;
-      if (targetId) {
-        const blocked = await isContactBlocked(targetId);
-        if (isMounted) {
-          setIsBlocked(blocked);
-        }
-      }
-    };
-    checkBlocked();
-    return () => {
-      isMounted = false;
-    };
-  }, [resolvedUUID, userId]);
-
-  const handleConfirmBlock = async (shouldReport: boolean) => {
-    const targetId = resolvedUUID || userId;
-    if (!targetId) return;
-
-    await blockContact(targetId);
-    if (resolvedUUID && resolvedUUID !== targetId) {
-      await blockContact(resolvedUUID);
-    }
-    setIsBlocked(true);
-
-    if (shouldReport) {
-      try {
-        let reportTargetUUID: string | null | undefined = resolvedUUID;
-        if (!reportTargetUUID) {
-          const isPhone = userId.startsWith("+") || /^\d+$/.test(userId);
-          if (isPhone) {
-            reportTargetUUID = await getContactByPhone(userId);
-          } else {
-            reportTargetUUID = userId;
-          }
-        }
-
-        if (!reportTargetUUID) {
-          try {
-            const bundle = await apiRequest<PreKeyBundle>(
-              `/bundle/${encodeURIComponent(userId)}`,
-              { method: "POST", authenticated: true }
-            );
-            if (bundle?.userId) {
-              reportTargetUUID = bundle.userId;
-              setResolvedUUID(bundle.userId);
-            }
-          } catch (e) {
-            console.warn("Could not fetch bundle to resolve UUID for report:", e);
-          }
-        }
-
-        if (!reportTargetUUID) {
-          Alert.alert("Report Failed", "Could not resolve user ID to submit report.");
-        } else {
-          await reportUser(reportTargetUUID, chatMessages);
-          Alert.alert("Report Submitted", "Thank you for reporting. Our team will review the messages.");
-        }
-      } catch (err: any) {
-        console.error("Failed to report user:", err);
-        Alert.alert("Report Failed", err?.message || "Failed to submit report. Please try again.");
-      }
-    }
-  };
-
-  const handleUnblock = async () => {
-    const targetId = resolvedUUID || userId;
-    if (!targetId) return;
-
-    await unblockContact(targetId);
-    setIsBlocked(false);
-  };
-
-  // Theme-dependent styles (memoized by theme)
-  const themedStyles = useThemedStyles((colors) => ({
+  const themedStyles = useThemedStyles((themeColors) => ({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: themeColors.background,
     },
     messageContainer: {
       flex: 1,
       paddingHorizontal: 16,
     },
     scrollToBottomButton: {
-      position: 'absolute',
+      position: "absolute",
       right: 16,
       bottom: 80,
       width: 40,
       height: 40,
       borderRadius: 20,
-      borderCurve: 'continuous',
-      backgroundColor: colors.surface,
-      alignItems: 'center',
-      justifyContent: 'center',
-      shadowColor: '#000',
+      borderCurve: "continuous",
+      backgroundColor: themeColors.surface,
+      alignItems: "center",
+      justifyContent: "center",
+      shadowColor: "#000",
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.2,
       shadowRadius: 4,
@@ -492,174 +160,42 @@ export default function Chat() {
     },
     dbErrorContainer: {
       flex: 1,
-      justifyContent: 'center' as const,
-      alignItems: 'center' as const,
+      justifyContent: "center" as const,
+      alignItems: "center" as const,
       padding: 32,
     },
     dbErrorText: {
-      color: colors.error,
-      textAlign: 'center' as const,
-    },
-    userNotFoundContainer: {
-      paddingVertical: 8,
-      paddingHorizontal: 16,
-      alignItems: 'center' as const,
-      backgroundColor: colors.surface,
-    },
-    userNotFoundText: {
-      color: colors.onSurfaceVariant as string,
-      textAlign: 'center' as const,
-      fontSize: 13,
-    },
-    keyChangeBanner: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      paddingVertical: 10,
-      paddingHorizontal: 16,
-      backgroundColor: colors.surface,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.outlineVariant,
-      gap: 10,
-    },
-    keyChangeBannerText: {
-      flex: 1,
-      color: colors.onSurfaceVariant as string,
-      fontSize: 13,
-      lineHeight: 18,
-    },
-    keyChangeDismiss: {
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-    },
-    keyChangeDismissText: {
-      color: colors.primary as string,
-      fontSize: 13,
-      fontWeight: '600' as const,
-    },
-    blockedBanner: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      paddingVertical: 10,
-      paddingHorizontal: 16,
-      backgroundColor: colors.surface,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: colors.outlineVariant,
-      gap: 10,
-    },
-    blockedBannerText: {
-      flex: 1,
-      color: colors.error as string,
-      fontSize: 13,
-      lineHeight: 18,
-      fontWeight: '500' as const,
-    },
-    unblockButton: {
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 6,
-      backgroundColor: colors.surfaceVariant,
-    },
-    unblockButtonText: {
-      color: colors.onSurface as string,
-      fontSize: 13,
-      fontWeight: '600' as const,
+      color: themeColors.error,
+      textAlign: "center" as const,
     },
   }));
 
-  // Insets-dependent styles (memoized by insets)
-  const messageBarInsetStyle = useMemo(() => ({
-    paddingBottom: keyboardHeight > 0 && Platform.OS !== 'ios' ? 8 : insets.bottom,
-  }), [insets.bottom, keyboardHeight]);
+  const inputBarPaddingBottom = useMemo(() => {
+    return keyboardHeight > 0 && Platform.OS !== "ios" ? 8 : insets.bottom;
+  }, [insets.bottom, keyboardHeight]);
 
   const content = (
     <>
-      <View style={styles.header}>
-        <StyledButton onPress={() => router.back()} variant="link">
-          <Ionicons
-            color={colors.primary}
-            name="chevron-back"
-            size={24}
-          />
-        </StyledButton>
-        <View style={styles.avatarWrapper}>
-          <ContactAvatar
-            name={name || userId}
-            picture={picture}
-            userId={resolvedUUID || userId}
-            size={36}
-          />
-        </View>
-        <StyledText style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
-          {name || userId}
-        </StyledText>
-        <View style={styles.headerRight}>
-          <MenuView
-            style={styles.menuView}
-            title="Options"
-            onPressAction={({ nativeEvent }) => {
-              if (nativeEvent.event === "block_report") {
-                setShowBlockSheet(true);
-              }
-            }}
-            actions={[
-              {
-                id: "block_report",
-                title: isBlocked ? "Report" : "Block / Report",
-                attributes: {
-                  destructive: true,
-                },
-              },
-            ]}
-          >
-            <View style={styles.menuTrigger}>
-              <Ionicons name="ellipsis-vertical" size={20} color={colors.onBackground as string} />
-            </View>
-          </MenuView>
-        </View>
-      </View>
+      <ChatHeader
+        displayName={name || userId}
+        picture={picture}
+        avatarUserId={resolvedUUID || userId}
+        isBlocked={isBlocked}
+        onOpenBlockReportSheet={() => setShowBlockSheet(true)}
+      />
 
-      {isBlocked && (
-        <View style={themedStyles.blockedBanner}>
-          <Ionicons name="ban" size={16} color={colors.error as string} />
-          <StyledText style={themedStyles.blockedBannerText}>
-            You have blocked this contact.
-          </StyledText>
-          <Pressable
-            style={themedStyles.unblockButton}
-            onPress={handleUnblock}
-            hitSlop={8}
-          >
-            <StyledText style={themedStyles.unblockButtonText}>Unblock</StyledText>
-          </Pressable>
-        </View>
-      )}
-
-      {showKeyChangeBanner && (
-        <View style={themedStyles.keyChangeBanner}>
-          <Ionicons name="lock-closed" size={16} color={colors.onSurfaceVariant} />
-          <StyledText style={themedStyles.keyChangeBannerText}>
-            Security info changed for {name || 'this contact'}. Messages will use a new session.
-          </StyledText>
-          <Pressable
-            style={themedStyles.keyChangeDismiss}
-            onPress={() => {
-              setShowKeyChangeBanner(false);
-              if (resolvedUUID) {
-                acknowledgeKeyChange(resolvedUUID).catch(() => {});
-              }
-            }}
-            hitSlop={8}
-          >
-            <StyledText style={themedStyles.keyChangeDismissText}>Dismiss</StyledText>
-          </Pressable>
-        </View>
-      )}
+      <ChatBanners
+        isBlocked={isBlocked}
+        onUnblock={handleUnblock}
+        showKeyChangeBanner={showKeyChangeBanner}
+        onDismissKeyChange={dismissKeyChangeBanner}
+        contactName={name}
+        isUserNotFound={isUserNotFound}
+      />
 
       {dbError ? (
         <View style={themedStyles.dbErrorContainer}>
-          <StyledText style={themedStyles.dbErrorText}>
-            {dbError}
-          </StyledText>
+          <StyledText style={themedStyles.dbErrorText}>{dbError}</StyledText>
         </View>
       ) : (
         <FlatList
@@ -668,9 +204,7 @@ export default function Chat() {
           data={[...chatMessages].reverse()}
           inverted
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <ChatBubble message={item} />
-          )}
+          renderItem={({ item }) => <ChatBubble message={item} />}
           contentContainerStyle={{ paddingVertical: 16 }}
           onScroll={onScroll}
           scrollEventThrottle={100}
@@ -681,41 +215,30 @@ export default function Chat() {
         <Pressable
           style={themedStyles.scrollToBottomButton}
           onPress={scrollToBottom}
+          accessibilityRole="button"
+          accessibilityLabel="Scroll to latest messages"
         >
           <Ionicons name="chevron-down" size={24} color={colors.onBackground} />
         </Pressable>
       )}
-      {isUserNotFound && (
-        <View style={themedStyles.userNotFoundContainer}>
-          <StyledText style={themedStyles.userNotFoundText}>
-            This Contact isn&apos;t using Deez Chatz yet.
-          </StyledText>
-        </View>
-      )}
 
-      <View
-        style={StyleSheet.flatten([
-          messageBarInsetStyle,
-          styles.messageBar,
-          { backgroundColor: colors.background }
-        ])}
-      >
-        <StyledTextInput
-          style={styles.messageInput}
-          placeholder={isBlocked ? "You have blocked this contact" : "Send message"}
-          value={message}
-          onChangeText={setMessage}
-          multiline
-          editable={!isBlocked}
-        />
-        <StyledButton
-          onPress={() => handleSendMessage(message)}
-          style={styles.messageButton}
-          disabled={isBlocked || !message.trim()}
-        >
-          <Ionicons name="send" size={24} color={colors.onPrimary as string} />
-        </StyledButton>
-      </View>
+      <ChatInputBar
+        message={message}
+        onChangeMessage={setMessage}
+        onSendMessage={onSendTextMessage}
+        voiceState={voiceState}
+        recordingDuration={recordingDuration}
+        isPlayingPreview={isPlayingPreview}
+        onStartRecording={startRecording}
+        onStopRecording={stopRecording}
+        onDiscardRecording={discardRecording}
+        onSendVoiceRecording={onSendVoiceMessage}
+        onTogglePlayPreview={togglePlayPreview}
+        voiceStateRef={voiceStateRef}
+        isRecordingJustStoppedRef={isRecordingJustStoppedRef}
+        isBlocked={isBlocked}
+        paddingBottom={inputBarPaddingBottom}
+      />
 
       <BlockReportSheet
         isPresented={showBlockSheet}
@@ -727,8 +250,8 @@ export default function Chat() {
   );
 
   return (
-    <SafeAreaView style={themedStyles.container} edges={['top']}>
-      {Platform.OS === 'ios' ? (
+    <SafeAreaView style={themedStyles.container} edges={["top"]}>
+      {Platform.OS === "ios" ? (
         <KeyboardAvoidingView
           style={themedStyles.container}
           behavior="padding"
@@ -737,74 +260,12 @@ export default function Chat() {
           {content}
         </KeyboardAvoidingView>
       ) : (
-        <View style={[themedStyles.container, { paddingBottom: keyboardHeight }]}>
+        <View
+          style={[themedStyles.container, { paddingBottom: keyboardHeight }]}
+        >
           {content}
         </View>
       )}
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  avatarWrapper: {
-    margin: 4,
-  },
-  image: {
-    margin: 8,
-  },
-  header: {
-    flex: 0,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  headerRight: {
-    marginLeft: "auto",
-    marginRight: 4,
-    width: 40,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
-    flexShrink: 0,
-  },
-  menuView: {
-    width: 40,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  menuTrigger: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  messageButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    margin: 4,
-    borderRadius: 25,
-  },
-  messageBar: {
-    flex: 0,
-    width: '100%', // Constrain width to prevent horizontal overflow
-    alignItems: "center",
-    flexDirection: "row",
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(0,0,0,0.1)', // Optional separation line
-  },
-  messageInput: {
-    borderRadius: 25,
-    padding: 12,
-    flex: 1, // Ensure shrinking when content overflows
-    margin: 4,
-    maxHeight: 120, // Prevent infinite growth
-    alignSelf: 'center', // Keep centered vertically within input bar
-  },
-});

@@ -3,6 +3,7 @@ import { generateOpks } from "@/src/utils/crypto/oneTimePreKeys";
 import useSession from "@/src/store/useSession";
 import { toBase64, toBytes } from "@/src/utils/helpers/encoding";
 import { apiRequest } from "@/src/clients/apiClient";
+import { normalizePhone } from "@/src/utils/helpers/phone";
 import {
   GoogleIdTokenResponse,
   RegisterDeviceResponse,
@@ -49,6 +50,9 @@ export async function registerDevice(
   const { signature: stateSignature, vrf: stateVrf } = await LibsignalDezireModule.vxeddsaSign(iKey, toBytes(stateToken));
   const opksB64 = await generateOpks();
 
+  const rawPhone = `${phoneDetails.countryCode}${phoneDetails.number}`;
+  const e164Phone = normalizePhone(rawPhone, phoneDetails.countryCode) || rawPhone;
+
   const response = await apiRequest<RegisterDeviceResponse>("/register/device", {
     method: "POST",
     body: {
@@ -57,7 +61,7 @@ export async function registerDevice(
       state: stateToken,
       stateSignature: toBase64(stateSignature),
       stateVrf: toBase64(stateVrf),
-      phone: `${phoneDetails.countryCode}${phoneDetails.number}`,
+      phone: e164Phone,
       signedPreKey: toBase64(pubPreKey),
       preKeySign: toBase64(preKeySign),
       preKeyVrf: toBase64(preKeyVrf),

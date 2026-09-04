@@ -1,8 +1,8 @@
 // WARNING: Switch to npm import once published: import MqttClient from 'expo-native-mqtt';
-import MqttClient from "expo-native-mqtt";
+import MqttClient, { MqttMessage } from "expo-native-mqtt";
 import { useEffect } from "react";
 import { Alert } from "react-native";
-import { fromBase64, toString } from "@/src/utils/helpers/encoding";
+import { toString } from "@/src/utils/helpers/encoding";
 import useMqttStore from "@/src/store/useMqttStore";
 import useSession from "@/src/store/useSession";
 import { Session } from "@/src/models/store";
@@ -146,11 +146,10 @@ const useMqtt = (topic: string) => {
                 //    broker will never redeliver if our processing fails.
                 const messageSub = MqttClient.addListener(
                     "onMqttMessageReceived",
-                    async (data: { topic: string; payloadBase64: string }) => {
+                    async (data: MqttMessage) => {
                         let inboxId: number | null = null;
                         try {
-                            const payloadBytes = fromBase64(data.payloadBase64);
-                            const payloadStr = toString(payloadBytes);
+                            const payloadStr = toString(data.payload);
 
                             // Step 1: Save raw ciphertext to inbox (fast, no crypto)
                             inboxId = await saveToInbox(data.topic, payloadStr);

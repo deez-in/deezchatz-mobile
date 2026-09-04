@@ -8,6 +8,7 @@ import { Contact, ContactField, getPermissionsAsync } from "expo-contacts";
 import { getAllContacts, batchSyncDeviceContacts } from "@/src/utils/db/contacts";
 import { notifyChatListListeners } from "@/src/utils/db/chatList";
 import { normalizePhone } from "@/src/utils/helpers/phone";
+import useSession from "@/src/store/useSession";
 
 // Store last sync time in memory to debounce sync queries
 let lastSyncTime = 0;
@@ -47,6 +48,8 @@ export async function syncDeviceContacts(force = false): Promise<void> {
             return;
         }
 
+        const userCountryCode = useSession.getState().phone?.countryCode;
+
         // Build mapping of normalizedPhone -> { contactId, name }
         const phoneToContactMap = new Map<string, { contactId: string; name: string }>();
 
@@ -63,7 +66,7 @@ export async function syncDeviceContacts(force = false): Promise<void> {
             for (const phone of contact.phones) {
                 if (!phone || !phone.number) continue;
 
-                const normalized = normalizePhone(phone.number);
+                const normalized = normalizePhone(phone.number, userCountryCode);
                 if (!normalized) continue;
 
                 phoneToContactMap.set(normalized, {
@@ -77,7 +80,7 @@ export async function syncDeviceContacts(force = false): Promise<void> {
         const updates: { phone: string; contactId: string; name: string }[] = [];
 
         for (const dbContact of dbContacts) {
-            const match = phoneToContactMap.get(normalizePhone(dbContact.phone));
+            const match = phoneToContactMap.get(normalizePhone(dbContact.phone, userCountryCode));
             if (match) {
                 // If contact_id or name changed, queue an update
                 if (dbContact.contact_id !== match.contactId || dbContact.name !== match.name) {

@@ -22,7 +22,18 @@ jest.mock('react-native-reanimated', () => {
 
 // Mock expo-native-mqtt
 jest.mock('expo-native-mqtt', () => {
+  const mockMqttClient = {
+    connect: jest.fn().mockResolvedValue('connected'),
+    disconnect: jest.fn().mockResolvedValue('disconnected'),
+    subscribe: jest.fn().mockResolvedValue('subscribed'),
+    unsubscribe: jest.fn().mockResolvedValue('unsubscribed'),
+    publish: jest.fn().mockResolvedValue('published'),
+    addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+  };
+
   return {
+    __esModule: true,
+    default: mockMqttClient,
     NativeMqttClient: jest.fn().mockImplementation(() => ({
       connect: jest.fn(),
       disconnect: jest.fn(),
@@ -115,4 +126,112 @@ jest.mock('expo-libsignal-dezire', () => ({
   ratchetDecrypt: jest.fn().mockResolvedValue(new Uint8Array(32)),
   ratchetFree: jest.fn(),
 }));
+
+// Mock uuid
+jest.mock('uuid', () => ({
+  v4: jest.fn().mockReturnValue('mock-uuid-v4'),
+}));
+
+// Mock expo-file-system
+jest.mock('expo-file-system', () => {
+  class MockDirectory {
+    get exists(): boolean {
+      return true;
+    }
+    uri: string;
+    constructor(...uris: any[]) {
+      this.uri = uris
+        .map((u) => (typeof u === 'object' && u?.uri ? u.uri : String(u)))
+        .join('/');
+    }
+    create(): void {}
+  }
+
+  class MockFile {
+    get exists(): boolean {
+      return true;
+    }
+    uri: string;
+    content: Uint8Array = new Uint8Array([1, 2, 3]);
+    constructor(...uris: any[]) {
+      this.uri = uris
+        .map((u) => (typeof u === 'object' && u?.uri ? u.uri : String(u)))
+        .join('/');
+    }
+    create(): void {}
+    write(bytes: Uint8Array): void {
+      this.content = bytes;
+    }
+    async copy(target: MockFile): Promise<void> {
+      target.content = this.content;
+    }
+    async arrayBuffer(): Promise<ArrayBuffer> {
+      return this.content.buffer.slice(
+        this.content.byteOffset,
+        this.content.byteOffset + this.content.byteLength
+      ) as ArrayBuffer;
+    }
+    delete(): void {}
+  }
+
+  return {
+    Directory: MockDirectory,
+    File: MockFile,
+    Paths: {
+      document: { uri: '/mock/documents' },
+      cache: { uri: '/mock/cache' },
+    },
+  };
+});
+
+const mockPlaybackListeners = new Set<(status: any) => void>();
+export const mockEmitPlaybackStatus = (status: any) => {
+  mockPlaybackListeners.forEach((fn) => fn(status));
+};
+
+// Mock expo-audio-opus
+jest.mock('expo-audio-opus', () => ({
+  __esModule: true,
+  default: {
+    requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true, canAskAgain: true }),
+    getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true, canAskAgain: true }),
+    startRecording: jest.fn().mockResolvedValue(undefined),
+    stopRecording: jest.fn().mockResolvedValue({
+      uri: 'file:///mock/cache/recording_mock.opus',
+      durationMs: 5000,
+      fileSize: 15000,
+    }),
+    pauseRecording: jest.fn().mockResolvedValue(undefined),
+    resumeRecording: jest.fn().mockResolvedValue(undefined),
+    startPlayback: jest.fn().mockResolvedValue({ durationMs: 5000, channels: 1, sampleRate: 48000 }),
+    stopPlayback: jest.fn().mockResolvedValue(undefined),
+    pausePlayback: jest.fn().mockResolvedValue(undefined),
+    resumePlayback: jest.fn().mockResolvedValue(undefined),
+    seekTo: jest.fn().mockResolvedValue(undefined),
+    addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+    removeListeners: jest.fn(),
+  },
+  addRecordingMeteringListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+  addPlaybackStatusListener: jest.fn((listener: (status: any) => void) => {
+    mockPlaybackListeners.add(listener);
+    return {
+      remove: jest.fn(() => mockPlaybackListeners.delete(listener)),
+    };
+  }),
+}));
+
+// Mock expo-contacts
+jest.mock('expo-contacts', () => ({
+  requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+  getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true }),
+  getContactsAsync: jest.fn().mockResolvedValue({ data: [] }),
+  PermissionStatus: {
+    GRANTED: 'granted',
+    DENIED: 'denied',
+    UNDETERMINED: 'undetermined',
+  },
+  Fields: {},
+  SortTypes: {},
+}));
+
 

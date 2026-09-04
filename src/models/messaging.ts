@@ -33,6 +33,38 @@ export type SendMessageParams = {
     recipientIdentityKey: string;
 };
 
+export type SendVoiceMessageParams = {
+    session: Session;
+    recipientUserId: string;
+    recipientDeviceId: string;
+    cacheUri: string;
+    encrypt: (
+        userId: string,
+        plaintext: Uint8Array,
+        ad?: Uint8Array
+    ) => Promise<RatchetEncryptResult | null>;
+    recipientIdentityKey: string;
+};
+
+export type SendInitialVoiceMessageParams = {
+    session: Session;
+    recipientIdentifier: string;
+    cacheUri: string;
+    name?: string;
+    initSender: (
+        userId: string,
+        sharedSecret: Uint8Array,
+        receiverPub: Uint8Array,
+        identityKey: string,
+        deviceId: string
+    ) => Promise<string | undefined>;
+    encrypt: (
+        userId: string,
+        plaintext: Uint8Array,
+        ad?: Uint8Array
+    ) => Promise<RatchetEncryptResult | null>;
+};
+
 export type SendResult = {
     userId: string;
     deviceId?: string;
@@ -67,11 +99,19 @@ export type ReceiveMessageParams = {
     ) => Promise<Uint8Array | null>;
 };
 
-export type ReceiveResult = {
-    plaintext: string;
-    senderUserId: string;
-    sharedSecret?: Uint8Array;
-};
+export type ReceiveResult =
+    | {
+        type: 'text';
+        content: string;
+        senderUserId: string;
+        sharedSecret?: Uint8Array;
+    }
+    | {
+        type: 'voice';
+        audioBytes: Uint8Array;
+        senderUserId: string;
+        sharedSecret?: Uint8Array;
+    };
 
 export type IncomingMessagePayload = {
     topic?: string;

@@ -36,8 +36,10 @@ export default function Register() {
     };
   }, []);
 
+  const isSignInDisabled = isLoading || isAvailable === false || !tosAccepted;
+
   const handleGoogleSignIn = async () => {
-    if (isLoading || !tosAccepted) {
+    if (isSignInDisabled) {
       return;
     }
 
@@ -128,6 +130,9 @@ export default function Register() {
       fontSize: 17,
       fontWeight: "700",
     },
+    buttonTextDisabled: {
+      color: colors.onSurfaceVariant,
+    },
     badge: {
       backgroundColor: colors.primaryContainer,
       color: colors.onPrimaryContainer,
@@ -182,9 +187,14 @@ export default function Register() {
         <StyledButton
           style={dynamicStyles.button}
           onPress={handleGoogleSignIn}
-          disabled={isLoading || isAvailable === false || !tosAccepted}
+          disabled={isSignInDisabled}
         >
-          <StyledText style={dynamicStyles.buttonText}>
+          <StyledText
+            style={[
+              dynamicStyles.buttonText,
+              isSignInDisabled && dynamicStyles.buttonTextDisabled,
+            ]}
+          >
             {isLoading ? "Signing in..." : "Continue with Google"}
           </StyledText>
         </StyledButton>

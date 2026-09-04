@@ -89,6 +89,13 @@ const config: ExpoConfig = {
       },
     ],
     "expo-native-mqtt",
+    [
+      "expo-audio-opus",
+      {
+        microphonePermission:
+          "DeezChatz needs access to your microphone to record voice messages.",
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,

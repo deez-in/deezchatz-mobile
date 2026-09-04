@@ -40,9 +40,10 @@ export default function Verify() {
     setIsLoading(true);
     try {
       const session = useSession.getState();
+      const cleanedNumber = phoneNumber.replace(/\D/g, "").replace(/^0+/, "");
       const response = await registerDevice(
         stateToken as string,
-        { countryCode, number: Number(phoneNumber) },
+        { countryCode: countryCode.trim(), number: Number(cleanedNumber) },
         null,
         userId as string
       );

@@ -2,7 +2,7 @@
 
 export type MqttMessageEvent = {
     topic: string;
-    payloadBase64: string;
+    payload: Uint8Array;
 };
 
 export type BundleSyncResult = {

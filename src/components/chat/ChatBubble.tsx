@@ -5,6 +5,7 @@ import { StyledText } from "@/src/components/ui";
 import { useThemedStyles } from '@/src/hooks/useTheme';
 import { Message } from '@/src/models/db';
 import { formatMessageTime } from '@/src/utils/helpers';
+import VoiceMessageBubble from './VoiceMessageBubble';
 
 export type ChatBubbleProps = {
     message: Message;
@@ -117,6 +118,10 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
                 </StyledText>
             </View>
         );
+    }
+
+    if (message.type === 'voice') {
+        return <VoiceMessageBubble message={message} />;
     }
 
     const statusIcon = isMe ? getStatusIcon(message.status, themedStyles) : null;
