@@ -1,11 +1,14 @@
+import { File } from "expo-file-system";
 import {
   formatRecordingTime,
-  startRecordingStub,
-  stopRecordingStub,
-  discardRecordingStub,
-  sendVoiceMessageStub,
-  playPreviewStub,
-  stopPreviewStub,
+  requestAudioPermissions,
+  getAudioPermissions,
+  startAudioRecording,
+  stopAudioRecording,
+  discardAudioRecording,
+  playPreviewAudio,
+  stopPreviewAudio,
+  sendVoiceMessage,
 } from "@/src/utils/audio";
 
 describe("voiceRecorder utils", () => {
@@ -28,30 +31,48 @@ describe("voiceRecorder utils", () => {
     });
   });
 
-  describe("recording and playback stubs", () => {
-    it("executes startRecordingStub without throwing", async () => {
-      await expect(startRecordingStub()).resolves.toBeUndefined();
+  describe("native audio recording, playback and transmission", () => {
+    it("checks and requests audio permissions", async () => {
+      const perm = await getAudioPermissions();
+      expect(perm.granted).toBe(true);
+
+      const req = await requestAudioPermissions();
+      expect(req.granted).toBe(true);
     });
 
-    it("executes stopRecordingStub and returns metadata with duration", async () => {
-      const result = await stopRecordingStub(12);
-      expect(result.durationSeconds).toBe(12);
-      expect(result.uri).toContain("mock://audio/voice_");
+    it("starts and stops recording, returning file metadata and duration", async () => {
+      await expect(startAudioRecording()).resolves.toBeUndefined();
+
+      const result = await stopAudioRecording();
+      expect(result.durationSeconds).toBe(5);
+      expect(result.durationMs).toBe(5000);
+      expect(result.uri).toContain(".opus");
     });
 
-    it("executes discardRecordingStub without throwing", async () => {
-      await expect(discardRecordingStub()).resolves.toBeUndefined();
-    });
-
-    it("executes sendVoiceMessageStub without throwing", async () => {
+    it("plays and stops preview audio", async () => {
       await expect(
-        sendVoiceMessageStub({ recipientId: "user-123", duration: 15 })
+        playPreviewAudio("file:///mock/cache/recording_mock.opus")
       ).resolves.toBeUndefined();
+      await expect(stopPreviewAudio()).resolves.toBeUndefined();
     });
 
-    it("executes playPreviewStub and stopPreviewStub without throwing", async () => {
-      await expect(playPreviewStub()).resolves.toBeUndefined();
-      await expect(stopPreviewStub()).resolves.toBeUndefined();
+    it("discards recording and removes cache file", async () => {
+      const deleteSpy = jest.spyOn(File.prototype, "delete");
+      await expect(
+        discardAudioRecording("file:///mock/cache/recording_mock.opus")
+      ).resolves.toBeUndefined();
+      expect(deleteSpy).toHaveBeenCalled();
+      deleteSpy.mockRestore();
+    });
+
+    it("executes sendVoiceMessage without error", async () => {
+      await expect(
+        sendVoiceMessage({
+          recipientId: "user-123",
+          duration: 5,
+          uri: "file:///mock/cache/recording_mock.opus",
+        })
+      ).resolves.toBeUndefined();
     });
   });
 });

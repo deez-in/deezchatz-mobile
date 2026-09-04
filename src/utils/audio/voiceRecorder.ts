@@ -1,6 +1,20 @@
+import { File } from "expo-file-system";
+import ExpoAudioOpus, {
+  addRecordingMeteringListener,
+  addPlaybackStatusListener,
+} from "expo-audio-opus";
+import type {
+  RecordingOptions,
+  PlaybackStatus,
+  MeteringEvent,
+  PermissionResponse,
+} from "expo-audio-opus";
+
 export interface VoiceRecordingResult {
   durationSeconds: number;
   uri?: string;
+  fileSize?: number;
+  durationMs?: number;
 }
 
 export interface SendVoiceMessageParams {
@@ -9,50 +23,85 @@ export interface SendVoiceMessageParams {
   uri?: string;
 }
 
+export const DEFAULT_RECORDING_OPTIONS: RecordingOptions = {
+  sampleRate: 48000,
+  channels: 1,
+  bitrate: 24000,
+  application: 1, // VoIP / speech mode
+  enableMetering: true,
+};
+
 /**
- * Stub to simulate starting audio recording.
- * Will be replaced by native audio recording implementation (e.g. expo-av / expo-audio).
+ * Requests microphone permissions from the operating system.
  */
-export async function startRecordingStub(): Promise<void> {
-  // Simulates initializing audio session and starting hardware recorder
+export async function requestAudioPermissions(): Promise<PermissionResponse> {
+  return ExpoAudioOpus.requestPermissionsAsync();
 }
 
 /**
- * Stub to simulate stopping audio recording and returning recording metadata.
+ * Checks current microphone permission status without prompting the user.
  */
-export async function stopRecordingStub(durationSeconds: number): Promise<VoiceRecordingResult> {
+export async function getAudioPermissions(): Promise<PermissionResponse> {
+  return ExpoAudioOpus.getPermissionsAsync();
+}
+
+/**
+ * Starts hardware voice recording with native Opus encoding into an Ogg container.
+ */
+export async function startAudioRecording(
+  options: RecordingOptions = DEFAULT_RECORDING_OPTIONS
+): Promise<void> {
+  await ExpoAudioOpus.startRecording(options);
+}
+
+/**
+ * Finalizes native audio recording, flushes Opus packets, and returns file metadata.
+ */
+export async function stopAudioRecording(): Promise<VoiceRecordingResult> {
+  const result = await ExpoAudioOpus.stopRecording();
+  const durationSeconds = Math.max(1, Math.round(result.durationMs / 1000));
   return {
     durationSeconds,
-    uri: `mock://audio/voice_${Date.now()}.m4a`,
+    durationMs: result.durationMs,
+    fileSize: result.fileSize,
+    uri: result.uri,
   };
 }
 
 /**
- * Stub to simulate discarding a recorded audio file.
+ * Discards a recorded audio file by stopping active playback and removing the temporary cache file.
  */
-export async function discardRecordingStub(): Promise<void> {
-  // Simulates removing temporary audio cache file
+export async function discardAudioRecording(uri?: string): Promise<void> {
+  try {
+    await ExpoAudioOpus.stopPlayback();
+  } catch {
+    // Ignore playback stop failures when no audio was actively playing
+  }
+
+  if (uri) {
+    try {
+      const file = new File(uri);
+      if (file.exists) {
+        file.delete();
+      }
+    } catch {
+      // Ignore cache deletion errors if file was already removed
+    }
+  }
 }
 
 /**
- * Stub to simulate sending an encrypted voice message.
+ * Plays back a local Ogg Opus recording via the native audio player.
  */
-export async function sendVoiceMessageStub(params: SendVoiceMessageParams): Promise<void> {
-  // Simulates encrypting audio buffer and transmitting payload via RMQTT
+export async function playPreviewAudio(uri: string): Promise<void> {
+  await ExpoAudioOpus.startPlayback(uri);
 }
 
 /**
- * Stub to simulate playing preview audio.
+ * Stops ongoing preview audio playback.
  */
-export async function playPreviewStub(): Promise<void> {
-  // Simulates playing back recorded audio locally
-}
-
-/**
- * Stub to simulate stopping preview audio.
- */
-export async function stopPreviewStub(): Promise<void> {
-  // Simulates stopping local playback
+export async function stopPreviewAudio(): Promise<void> {
+  await ExpoAudioOpus.stopPlayback();
 }
 
 /**
@@ -65,3 +114,22 @@ export function formatRecordingTime(seconds: number): string {
   const formattedSecs = secs < 10 ? `0${secs}` : `${secs}`;
   return `${formattedMins}:${formattedSecs}`;
 }
+
+export async function sendVoiceMessage(
+  params: SendVoiceMessageParams
+): Promise<void> {
+  console.log("[sendVoiceMessage stub] Voice message queued:", {
+    recipientId: params.recipientId,
+    duration: params.duration,
+    uri: params.uri,
+  });
+  return;
+}
+
+export {
+  addRecordingMeteringListener,
+  addPlaybackStatusListener,
+  PlaybackStatus,
+  MeteringEvent,
+  PermissionResponse,
+};

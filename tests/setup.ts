@@ -132,3 +132,50 @@ jest.mock('uuid', () => ({
   v4: jest.fn().mockReturnValue('mock-uuid-v4'),
 }));
 
+// Mock expo-file-system
+jest.mock('expo-file-system', () => {
+  class MockFile {
+    exists: boolean = true;
+    uri: string;
+    constructor(...uris: string[]) {
+      this.uri = uris.join('/');
+    }
+    delete(): void {}
+  }
+
+  return {
+    File: MockFile,
+    Paths: {
+      document: { uri: '/mock/documents' },
+      cache: { uri: '/mock/cache' },
+    },
+  };
+});
+
+// Mock expo-audio-opus
+jest.mock('expo-audio-opus', () => ({
+  __esModule: true,
+  default: {
+    requestPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true, canAskAgain: true }),
+    getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted', granted: true, canAskAgain: true }),
+    startRecording: jest.fn().mockResolvedValue(undefined),
+    stopRecording: jest.fn().mockResolvedValue({
+      uri: 'file:///mock/cache/recording_mock.opus',
+      durationMs: 5000,
+      fileSize: 15000,
+    }),
+    pauseRecording: jest.fn().mockResolvedValue(undefined),
+    resumeRecording: jest.fn().mockResolvedValue(undefined),
+    startPlayback: jest.fn().mockResolvedValue({ durationMs: 5000, channels: 1, sampleRate: 48000 }),
+    stopPlayback: jest.fn().mockResolvedValue(undefined),
+    pausePlayback: jest.fn().mockResolvedValue(undefined),
+    resumePlayback: jest.fn().mockResolvedValue(undefined),
+    seekTo: jest.fn().mockResolvedValue(undefined),
+    addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+    removeListeners: jest.fn(),
+  },
+  addRecordingMeteringListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+  addPlaybackStatusListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+}));
+
+
