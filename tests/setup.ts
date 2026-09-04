@@ -22,7 +22,18 @@ jest.mock('react-native-reanimated', () => {
 
 // Mock expo-native-mqtt
 jest.mock('expo-native-mqtt', () => {
+  const mockMqttClient = {
+    connect: jest.fn().mockResolvedValue('connected'),
+    disconnect: jest.fn().mockResolvedValue('disconnected'),
+    subscribe: jest.fn().mockResolvedValue('subscribed'),
+    unsubscribe: jest.fn().mockResolvedValue('unsubscribed'),
+    publish: jest.fn().mockResolvedValue('published'),
+    addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+  };
+
   return {
+    __esModule: true,
+    default: mockMqttClient,
     NativeMqttClient: jest.fn().mockImplementation(() => ({
       connect: jest.fn(),
       disconnect: jest.fn(),
