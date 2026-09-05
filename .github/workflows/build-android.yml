@@ -83,13 +83,13 @@ jobs:
           pattern: build-artifact-*
           merge-multiple: true
 
-      - name: Upload to Google Play Internal Testing
-        uses: r0adkll/upload-google-play@v1
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
-          packageName: in.deez.chatz
-          releaseFiles: artifacts/deezchatz-*.aab
-          track: internal
+      # - name: Upload to Google Play Internal Testing
+      #   uses: r0adkll/upload-google-play@v1
+      #   with:
+      #     serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
+      #     packageName: in.deez.chatz
+      #     releaseFiles: artifacts/deezchatz-*.aab
+      #     track: internal
 
       - name: Attach artifacts to GitHub Release
         if: github.event_name == 'release'

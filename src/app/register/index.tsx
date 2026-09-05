@@ -1,4 +1,5 @@
 import { Alert, StyleSheet, View, Pressable } from "react-native";
+import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyledButton, StyledText } from "@/src/components/ui";
 import { Link, router } from "expo-router";
@@ -180,7 +181,11 @@ export default function Register() {
         <StyledText style={dynamicStyles.heading}>
           Welcome to <StyledText style={styles.branding}>Deez Chatz</StyledText>
         </StyledText>
-        <StyledText style={styles.emoji}>💬</StyledText>
+        <Image
+          source={require("@/src/assets/images/logo.png")}
+          style={styles.icon}
+          contentFit="contain"
+        />
         <StyledText style={dynamicStyles.subheading}>
           Continue with your Google account to create or access your Deez Chatz profile.
         </StyledText>
@@ -241,8 +246,11 @@ export default function Register() {
 }
 const styles = StyleSheet.create({
   branding: { fontWeight: "700", fontSize: 32 },
-  emoji: {
-    fontSize: 36,
-    textAlign: "center",
+  icon: {
+    width: 128,
+    height: 128,
+    alignSelf: "center",
+    marginTop: -12,
+    marginBottom: -16,
   },
 });
