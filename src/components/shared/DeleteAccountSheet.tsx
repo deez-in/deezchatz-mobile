@@ -149,6 +149,7 @@ export default function DeleteAccountSheet({
     <BottomSheet
       isPresented={isPresented}
       onDismiss={handleDismiss}
+      snapPoints={["full"]}
       showDragIndicator={true}
     >
       <RNHostView matchContents>
