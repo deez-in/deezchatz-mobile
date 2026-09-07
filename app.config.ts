@@ -14,6 +14,8 @@ const config: ExpoConfig = {
     bundleIdentifier: "in.deez.chatz",
     infoPlist: {
       UIBackgroundModes: ["remote-notification"],
+      UIFileSharingEnabled: true,
+      LSSupportsOpeningDocumentsInPlace: true,
     },
   },
   android: {

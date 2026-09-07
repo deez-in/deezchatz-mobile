@@ -1,44 +1,103 @@
 /**
- * Signal-style permanent media storage for voice messages.
- * Directory hierarchy in persistent storage (Paths.document):
- *   - Received voice notes: media/voice/<messageId>.opus
- *   - Sent voice notes:     media/voice/sent/<messageId>.opus
+ * WhatsApp-style media storage for voice messages.
+ *
+ * Directory hierarchy:
+ *   - Android:
+ *       Received: /storage/emulated/0/Android/media/in.deez.chatz/DeezChatz/Media/Voice/<messageId>.opus
+ *       Sent:     /storage/emulated/0/Android/media/in.deez.chatz/DeezChatz/Media/Voice/Sent/<messageId>.opus
+ *   - iOS (or fallback):
+ *       Received: Paths.document/DeezChatz/Media/Voice/<messageId>.opus
+ *       Sent:     Paths.document/DeezChatz/Media/Voice/Sent/<messageId>.opus
+ *
+ * A .nomedia file is created in the Voice directory to prevent system audio players
+ * from indexing voice messages into user playlists while keeping them accessible in file managers.
  */
 
 import { File, Directory, Paths } from "expo-file-system";
+import { Platform } from "react-native";
+
+export const ANDROID_MEDIA_ROOT =
+  "file:///storage/emulated/0/Android/media/in.deez.chatz/DeezChatz/Media/Voice";
+export const ANDROID_MEDIA_SENT = `${ANDROID_MEDIA_ROOT}/Sent`;
+
+let useInternalStorageFallback = false;
+
+export function setUseInternalFallback(fallback: boolean): void {
+  useInternalStorageFallback = fallback;
+}
+
+export function isUsingInternalFallback(): boolean {
+  return useInternalStorageFallback;
+}
 
 /**
- * Gets or creates the media/voice/ directory.
+ * Gets or creates the Voice directory.
  */
 export function getVoiceDirectory(): Directory {
-  return new Directory(Paths.document, "media", "voice");
+  if (Platform.OS === "android" && !useInternalStorageFallback) {
+    return new Directory(ANDROID_MEDIA_ROOT);
+  }
+  return new Directory(
+    Paths.document,
+    "DeezChatz",
+    "Media",
+    "Voice"
+  );
 }
 
 /**
- * Gets or creates the media/voice/sent/ directory.
+ * Gets or creates the Voice/Sent directory.
  */
 export function getVoiceSentDirectory(): Directory {
-  return new Directory(Paths.document, "media", "voice", "sent");
+  if (Platform.OS === "android" && !useInternalStorageFallback) {
+    return new Directory(ANDROID_MEDIA_SENT);
+  }
+  return new Directory(
+    Paths.document,
+    "DeezChatz",
+    "Media",
+    "Voice",
+    "Sent"
+  );
 }
 
 /**
- * Ensures that both media/voice and media/voice/sent directories exist.
+ * Ensures that both Voice and Voice/Sent directories exist,
+ * and creates a .nomedia file to prevent media player indexing.
  */
 export async function ensureVoiceDirectories(): Promise<void> {
-  const voiceDir = getVoiceDirectory();
-  if (!voiceDir.exists) {
-    voiceDir.create({ intermediates: true });
-  }
+  try {
+    const voiceDir = getVoiceDirectory();
+    if (!voiceDir.exists) {
+      voiceDir.create({ intermediates: true });
+    }
 
-  const voiceSentDir = getVoiceSentDirectory();
-  if (!voiceSentDir.exists) {
-    voiceSentDir.create({ intermediates: true });
+    const voiceSentDir = getVoiceSentDirectory();
+    if (!voiceSentDir.exists) {
+      voiceSentDir.create({ intermediates: true });
+    }
+
+    const nomediaFile = new File(voiceDir, ".nomedia");
+    if (!nomediaFile.exists) {
+      nomediaFile.create();
+    }
+  } catch (error) {
+    if (Platform.OS === "android" && !useInternalStorageFallback) {
+      console.warn(
+        "Failed to create external media directory, falling back to internal storage:",
+        error
+      );
+      useInternalStorageFallback = true;
+      await ensureVoiceDirectories();
+      return;
+    }
+    throw error;
   }
 }
 
 /**
  * Moves/copies a recorded cache audio file to permanent sent storage:
- * media/voice/sent/<messageId>.opus
+ * .../Voice/Sent/<messageId>.opus
  *
  * @param cacheUri - The temporary recording file URI in Paths.cache
  * @param messageId - The unique ID of the message
@@ -51,13 +110,7 @@ export async function saveSentVoiceMessage(
   await ensureVoiceDirectories();
 
   const sourceFile = new File(cacheUri);
-  const targetFile = new File(
-    Paths.document,
-    "media",
-    "voice",
-    "sent",
-    `${messageId}.opus`
-  );
+  const targetFile = new File(getVoiceSentDirectory(), `${messageId}.opus`);
 
   await sourceFile.copy(targetFile, { overwrite: true });
   return targetFile.uri;
@@ -65,7 +118,7 @@ export async function saveSentVoiceMessage(
 
 /**
  * Writes decrypted Opus audio bytes to permanent received storage:
- * media/voice/<messageId>.opus
+ * .../Voice/<messageId>.opus
  *
  * @param bytes - Decrypted raw Opus file bytes
  * @param messageId - The unique ID of the received message
@@ -77,12 +130,7 @@ export async function saveReceivedVoiceMessage(
 ): Promise<string> {
   await ensureVoiceDirectories();
 
-  const targetFile = new File(
-    Paths.document,
-    "media",
-    "voice",
-    `${messageId}.opus`
-  );
+  const targetFile = new File(getVoiceDirectory(), `${messageId}.opus`);
 
   targetFile.create({ overwrite: true });
   targetFile.write(bytes);
