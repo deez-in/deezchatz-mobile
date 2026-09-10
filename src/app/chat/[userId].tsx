@@ -20,11 +20,13 @@ import {
   ChatHeader,
   ChatBanners,
   ChatInputBar,
+  ImagePreviewModal,
 } from "@/src/components/chat";
 import { useTheme, useThemedStyles } from "@/src/hooks/useTheme";
 import { useChatSession } from "@/src/hooks/useChatSession";
 import { useContactIdentity } from "@/src/hooks/useContactIdentity";
 import { useVoiceRecording } from "@/src/hooks/useVoiceRecording";
+import { useImagePicker } from "@/src/hooks/useImagePicker";
 import { Message } from "@/src/models/db";
 
 export default function Chat() {
@@ -36,6 +38,8 @@ export default function Chat() {
   const [message, setMessage] = useState<string>("");
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+  const [showImagePreview, setShowImagePreview] = useState(false);
 
   const flatListRef = useRef<FlatList<Message>>(null);
   const insets = useSafeAreaInsets();
@@ -77,11 +81,14 @@ export default function Chat() {
     isUserNotFound,
     handleSendMessage,
     handleSendVoice,
+    handleSendImage,
   } = useChatSession({
     userId,
     initialName,
     scrollToBottom,
   });
+
+  const { pickAndCompressImage } = useImagePicker();
 
   const {
     name,
@@ -131,6 +138,23 @@ export default function Chat() {
   const onSendVoiceMessage = useCallback(() => {
     sendVoiceRecording();
   }, [sendVoiceRecording]);
+
+  const onPickImage = useCallback(async () => {
+    const result = await pickAndCompressImage();
+    if (result) {
+      setSelectedImageUri(result.uri);
+      setShowImagePreview(true);
+    }
+  }, [pickAndCompressImage]);
+
+  const onSendImageMessage = useCallback(
+    async (imageUri: string, caption: string) => {
+      await handleSendImage(imageUri, caption, name);
+      setShowImagePreview(false);
+      setSelectedImageUri(null);
+    },
+    [handleSendImage, name]
+  );
 
   const themedStyles = useThemedStyles((themeColors) => ({
     container: {
@@ -226,6 +250,7 @@ export default function Chat() {
         message={message}
         onChangeMessage={setMessage}
         onSendMessage={onSendTextMessage}
+        onPickImage={onPickImage}
         voiceState={voiceState}
         recordingDuration={recordingDuration}
         isPlayingPreview={isPlayingPreview}
@@ -238,6 +263,16 @@ export default function Chat() {
         isRecordingJustStoppedRef={isRecordingJustStoppedRef}
         isBlocked={isBlocked}
         paddingBottom={inputBarPaddingBottom}
+      />
+
+      <ImagePreviewModal
+        visible={showImagePreview}
+        imageUri={selectedImageUri}
+        onSend={onSendImageMessage}
+        onClose={() => {
+          setShowImagePreview(false);
+          setSelectedImageUri(null);
+        }}
       />
 
       <BlockReportSheet

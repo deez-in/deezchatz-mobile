@@ -65,6 +65,40 @@ export type SendInitialVoiceMessageParams = {
     ) => Promise<RatchetEncryptResult | null>;
 };
 
+export type SendImageMessageParams = {
+    session: Session;
+    recipientUserId: string;
+    recipientDeviceId: string;
+    imageUri: string;
+    caption?: string;
+    encrypt: (
+        userId: string,
+        plaintext: Uint8Array,
+        ad?: Uint8Array
+    ) => Promise<RatchetEncryptResult | null>;
+    recipientIdentityKey: string;
+};
+
+export type SendInitialImageMessageParams = {
+    session: Session;
+    recipientIdentifier: string;
+    imageUri: string;
+    caption?: string;
+    name?: string;
+    initSender: (
+        userId: string,
+        sharedSecret: Uint8Array,
+        receiverPub: Uint8Array,
+        identityKey: string,
+        deviceId: string
+    ) => Promise<string | undefined>;
+    encrypt: (
+        userId: string,
+        plaintext: Uint8Array,
+        ad?: Uint8Array
+    ) => Promise<RatchetEncryptResult | null>;
+};
+
 export type SendResult = {
     userId: string;
     deviceId?: string;
@@ -109,6 +143,14 @@ export type ReceiveResult =
     | {
         type: 'voice';
         audioBytes: Uint8Array;
+        senderUserId: string;
+        sharedSecret?: Uint8Array;
+    }
+    | {
+        type: 'image';
+        imageBytes: Uint8Array;
+        caption: string;
+        timestamp?: number;
         senderUserId: string;
         sharedSecret?: Uint8Array;
     };

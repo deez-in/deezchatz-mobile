@@ -65,6 +65,7 @@ export async function saveMessage(
         created_at?: number;
         received_at?: number | null;
         type?: Message['type'];
+        caption?: string;
     }
 ): Promise<string> {
     const db = requireChatDatabase(chatId);
@@ -73,18 +74,24 @@ export async function saveMessage(
     const received_at = message.received_at ?? null;
 
     await db.runAsync(
-        'INSERT INTO messages (id, content, sender_id, created_at, received_at, status, type) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO messages (id, content, sender_id, created_at, received_at, status, type, caption) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         id,
         message.content,
         message.sender_id,
         created_at,
         received_at,
         message.status ?? 'sent',
-        message.type ?? 'message'
+        message.type ?? 'message',
+        message.caption ?? null
     );
 
     // Update chat list in primary DB
-    const preview = message.type === 'voice' ? '🎤 Voice message' : message.content;
+    let preview = message.content;
+    if (message.type === 'voice') {
+        preview = '🎤 Voice message';
+    } else if (message.type === 'image') {
+        preview = message.caption ? `📷 ${message.caption}` : '📷 Photo';
+    }
     await upsertChatThread(chatId, preview);
     notifyListeners(chatId);
     return id;
@@ -154,6 +161,7 @@ export async function saveMessageWithAutoOpen(
         created_at?: number;
         received_at?: number | null;
         type?: Message['type'];
+        caption?: string;
     }
 ): Promise<string> {
     const wasAlreadyOpen = isDatabaseOpen(chatId);
@@ -165,17 +173,23 @@ export async function saveMessageWithAutoOpen(
         const received_at = message.received_at ?? null;
 
         await db.runAsync(
-            'INSERT INTO messages (id, content, sender_id, created_at, received_at, status, type) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO messages (id, content, sender_id, created_at, received_at, status, type, caption) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
             id,
             message.content,
             message.sender_id,
             created_at,
             received_at,
             message.status ?? 'sent',
-            message.type ?? 'message'
+            message.type ?? 'message',
+            message.caption ?? null
         );
 
-        const preview = message.type === 'voice' ? '🎤 Voice message' : message.content;
+        let preview = message.content;
+        if (message.type === 'voice') {
+            preview = '🎤 Voice message';
+        } else if (message.type === 'image') {
+            preview = message.caption ? `📷 ${message.caption}` : '📷 Photo';
+        }
         await upsertChatThread(chatId, preview);
         notifyListeners(chatId);
         return id;

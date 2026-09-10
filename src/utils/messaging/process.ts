@@ -19,6 +19,8 @@ import {
 } from '@/src/utils/db';
 import { syncDeviceContacts } from '@/src/utils/network/sync/contactSync';
 import { saveReceivedVoiceMessage } from '@/src/utils/audio/audioStorage';
+import { saveReceivedImage } from '@/src/utils/image';
+import { MessageType } from '@/src/models/db';
 import { generateMessageId } from '../helpers/formatting';
 
 /**
@@ -74,7 +76,8 @@ export async function processIncomingMessage(
         let content: string;
         let threadPreview: string;
         let messageId: string | undefined;
-        let messageType: 'message' | 'voice';
+        let messageType: MessageType;
+        let caption: string | undefined;
 
         if (result.type === 'voice') {
             messageId = generateMessageId();
@@ -82,6 +85,13 @@ export async function processIncomingMessage(
             content = permanentUri;
             threadPreview = '🎤 Voice message';
             messageType = 'voice';
+        } else if (result.type === 'image') {
+            messageId = generateMessageId();
+            const permanentUri = await saveReceivedImage(result.imageBytes, messageId);
+            content = permanentUri;
+            caption = result.caption?.trim() || undefined;
+            threadPreview = caption ? `📷 ${caption}` : '📷 Photo';
+            messageType = 'image';
         } else {
             content = result.content;
             threadPreview = result.content;
@@ -126,6 +136,7 @@ export async function processIncomingMessage(
             created_at: senderTimestamp,
             received_at: received_at,
             type: messageType,
+            caption,
         });
 
         return content;
@@ -153,13 +164,20 @@ export async function processIncomingMessage(
 
         let content: string;
         let messageId: string | undefined;
-        let messageType: 'message' | 'voice';
+        let messageType: MessageType;
+        let caption: string | undefined;
 
         if (result.type === 'voice') {
             messageId = generateMessageId();
             const permanentUri = await saveReceivedVoiceMessage(result.audioBytes, messageId);
             content = permanentUri;
             messageType = 'voice';
+        } else if (result.type === 'image') {
+            messageId = generateMessageId();
+            const permanentUri = await saveReceivedImage(result.imageBytes, messageId);
+            content = permanentUri;
+            caption = result.caption?.trim() || undefined;
+            messageType = 'image';
         } else {
             content = result.content;
             messageType = 'message';
@@ -173,6 +191,7 @@ export async function processIncomingMessage(
             created_at: senderTimestamp,
             received_at: received_at,
             type: messageType,
+            caption,
         });
 
         return content;

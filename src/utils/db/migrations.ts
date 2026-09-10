@@ -37,6 +37,11 @@ export async function migrateChatDatabase(db: SQLite.SQLiteDatabase): Promise<vo
         await db.execAsync("ALTER TABLE messages ADD COLUMN received_at INTEGER;");
     } catch {}
 
+    // Self-healing: add caption column to messages table if it doesn't exist
+    try {
+        await db.execAsync("ALTER TABLE messages ADD COLUMN caption TEXT;");
+    } catch {}
+
     await db.execAsync('PRAGMA user_version = 1;');
 }
 

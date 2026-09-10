@@ -4,9 +4,15 @@ export { default as VoiceRecordBar } from "./VoiceRecordBar";
 export { default as ChatHeader } from "./ChatHeader";
 export { default as ChatBanners } from "./ChatBanners";
 export { default as ChatInputBar } from "./ChatInputBar";
+export { default as ImageMessageBubble } from "./ImageMessageBubble";
+export { default as ImageViewer } from "./ImageViewer";
+export { default as ImagePreviewModal } from "./ImagePreviewModal";
 
 export type { VoiceMessageBubbleProps } from "./VoiceMessageBubble";
 export type { VoiceRecordBarProps } from "./VoiceRecordBar";
 export type { ChatHeaderProps } from "./ChatHeader";
 export type { ChatBannersProps } from "./ChatBanners";
 export type { ChatInputBarProps } from "./ChatInputBar";
+export type { ImageMessageBubbleProps } from "./ImageMessageBubble";
+export type { ImageViewerProps } from "./ImageViewer";
+export type { ImagePreviewModalProps } from "./ImagePreviewModal";

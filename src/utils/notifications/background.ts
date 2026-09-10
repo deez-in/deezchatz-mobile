@@ -115,8 +115,3 @@ TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data, error, execu
     console.error('[Background Task] Error executing processing:', err);
   }
 });
-
-// Register AFTER task definition as per Expo documentation
-Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK).catch((e) => {
-  console.debug('[Background Task] Register task status:', e?.message || e);
-});

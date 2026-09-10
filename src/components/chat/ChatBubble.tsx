@@ -6,6 +6,7 @@ import { useThemedStyles } from '@/src/hooks/useTheme';
 import { Message } from '@/src/models/db';
 import { formatMessageTime } from '@/src/utils/helpers';
 import VoiceMessageBubble from './VoiceMessageBubble';
+import ImageMessageBubble from './ImageMessageBubble';
 
 export type ChatBubbleProps = {
     message: Message;
@@ -122,6 +123,10 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
 
     if (message.type === 'voice') {
         return <VoiceMessageBubble message={message} />;
+    }
+
+    if (message.type === 'image') {
+        return <ImageMessageBubble message={message} />;
     }
 
     const statusIcon = isMe ? getStatusIcon(message.status, themedStyles) : null;

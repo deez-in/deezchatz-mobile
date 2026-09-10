@@ -15,9 +15,33 @@ jest.mock('expo-crypto', () => ({
 
 // Mock react-native-reanimated
 jest.mock('react-native-reanimated', () => {
-  const Reanimated = require('react-native-reanimated/mock');
-  Reanimated.default.call = () => {};
-  return Reanimated;
+  const { View, Text, Image, ScrollView } = require('react-native');
+  return {
+    __esModule: true,
+    default: {
+      View,
+      Text,
+      Image,
+      ScrollView,
+      createAnimatedComponent: (c: any) => c,
+    },
+    useSharedValue: (v: any) => ({ value: v }),
+    useAnimatedStyle: (fn: any) => fn(),
+    withTiming: (v: any) => v,
+    withSpring: (v: any) => v,
+    runOnJS: (fn: any) => fn,
+  };
+});
+
+// Mock react-native-safe-area-context
+jest.mock('react-native-safe-area-context', () => {
+  const inset = { top: 0, right: 0, bottom: 0, left: 0 };
+  return {
+    SafeAreaProvider: ({ children }: any) => children,
+    SafeAreaConsumer: ({ children }: any) => children(inset),
+    useSafeAreaInsets: jest.fn(() => inset),
+    useSafeAreaFrame: jest.fn(() => ({ x: 0, y: 0, width: 390, height: 844 })),
+  };
 });
 
 // Mock expo-native-mqtt

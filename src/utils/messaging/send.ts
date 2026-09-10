@@ -47,9 +47,12 @@ import {
     SendMessageParams,
     SendVoiceMessageParams,
     SendInitialVoiceMessageParams,
+    SendImageMessageParams,
+    SendInitialImageMessageParams,
 } from '@/src/models/messaging';
-import { encodeTextPayload, encodeVoicePayload } from './payloadFraming';
+import { encodeTextPayload, encodeVoicePayload, encodeImagePayload } from './payloadFraming';
 import { saveSentVoiceMessage, readAudioBytes } from '@/src/utils/audio/audioStorage';
+import { saveSentImage, readImageBytes } from '@/src/utils/image';
 import { generateMessageId } from '../helpers/formatting';
 
 
@@ -468,6 +471,203 @@ export async function sendVoiceMessage({
         }
     } catch (e) {
         console.error('Publish attempt failed for voice message (will retry from outbox):', e);
+    }
+
+    return { messageId };
+}
+
+/**
+ * Sends the initial image message to a contact (performs X3DH key exchange).
+ */
+export async function sendInitialImageMessage({
+    session,
+    recipientIdentifier,
+    imageUri,
+    caption,
+    name,
+    initSender,
+    encrypt,
+}: SendInitialImageMessageParams): Promise<{ userId: string; messageId: string }> {
+    const { isConnected } = useMqttStore.getState();
+    if (!isConnected) {
+        throw new BundleFetchError(recipientIdentifier);
+    }
+
+    let preKeyBundle: PreKeyBundle | undefined;
+    try {
+        preKeyBundle = await fetchPreKeyBundle(recipientIdentifier);
+
+        if (!preKeyBundle || !preKeyBundle.identityKey || !preKeyBundle.userId || !preKeyBundle.deviceId) {
+            throw new BundleFetchError(recipientIdentifier);
+        }
+    } catch (e: any) {
+        if (e.status === 404) throw new UserNotFoundError(recipientIdentifier);
+        if (e instanceof UserNotFoundError || e instanceof BundleFetchError) throw e;
+        throw new BundleFetchError(recipientIdentifier, e);
+    }
+
+    const resolvedUserId = preKeyBundle.userId;
+    const resolvedPhone = preKeyBundle.phone || recipientIdentifier;
+
+    let sharedSecret: Uint8Array;
+    let ephemeralKey: Uint8Array;
+    try {
+        const x3dhResult = await x3dhInitiator(session, preKeyBundle);
+        sharedSecret = x3dhResult.sharedSecret;
+        ephemeralKey = x3dhResult.ephemeralKey;
+        await initSender(
+            resolvedUserId,
+            sharedSecret,
+            fromBase64(preKeyBundle.signedPreKey),
+            preKeyBundle.identityKey,
+            preKeyBundle.deviceId
+        );
+    } catch (e) {
+        throw new EncryptionError(resolvedPhone, e as Error);
+    }
+
+    const messageId = generateMessageId();
+    const permanentUri = await saveSentImage(imageUri, messageId);
+    const imageBytes = await readImageBytes(permanentUri);
+
+    let ciphertext: RatchetEncryptResult;
+    try {
+        const ad = await constructSenderAD(session.iKey, preKeyBundle.identityKey);
+        const timestampSeconds = Math.floor(Date.now() / 1000);
+        const framedPayload = encodeImagePayload(timestampSeconds, caption || "", imageBytes);
+        const result = await encrypt(resolvedUserId, framedPayload, ad);
+        if (!result) {
+            throw new EncryptionError(resolvedPhone);
+        }
+        ciphertext = result;
+    } catch (e) {
+        await clearSession(resolvedUserId).catch(() => {});
+        if (e instanceof EncryptionError) throw e;
+        throw new EncryptionError(resolvedPhone, e as Error);
+    }
+
+    const now = Date.now();
+    const senderIdentityPub = await LibsignalDezireModule.genPubKey(session.iKey);
+    const payload = {
+        identityKey: toBase64(senderIdentityPub),
+        ephemeralKey: toBase64(ephemeralKey),
+        spkId: preKeyBundle.spkId ?? 1,
+        opkId: preKeyBundle.opk?.id ?? null,
+        ciphertext: toBase64(ciphertext.ciphertext),
+        header: toBase64(ciphertext.header),
+        timestamp: now,
+    };
+    const payloadStr = JSON.stringify(payload);
+
+    const topic = buildMessageTopic(
+        resolvedUserId, preKeyBundle.deviceId,
+        session.userId!, session.deviceId!
+    );
+
+    let publishSuccess = false;
+    try {
+        publishSuccess = await publishMessage(topic, payloadStr);
+    } catch (e) {
+        console.error('MQTT publish failed for initial image message:', e);
+    }
+
+    if (!publishSuccess) {
+        await clearSession(resolvedUserId).catch(() => {});
+        throw new Error("Image message has not been sent. Please try again.");
+    }
+
+    try {
+        await saveContact(resolvedPhone, resolvedUserId, preKeyBundle.picture, name);
+        syncDeviceContacts().catch(e => console.warn('Failed to sync device contacts after initial image message:', e));
+
+        await saveMessageWithAutoOpen(resolvedUserId, {
+            id: messageId,
+            content: permanentUri,
+            sender_id: 'me',
+            status: 'sent',
+            created_at: now,
+            type: 'image',
+            caption: caption?.trim() || undefined,
+        });
+
+        const outboxId = await saveToOutbox(resolvedUserId, messageId, topic, payloadStr);
+        await markOutboxSent(outboxId);
+
+        const threadPreview = caption ? `📷 ${caption}` : '📷 Photo';
+        await upsertChatThread(resolvedUserId, threadPreview, resolvedPhone);
+    } catch (e) {
+        console.error('Failed to persist sent image message metadata:', e);
+    }
+
+    return { userId: resolvedUserId, messageId };
+}
+
+/**
+ * Sends a subsequent image message (ratchet already initialized).
+ */
+export async function sendImageMessage({
+    session,
+    recipientUserId,
+    recipientDeviceId,
+    imageUri,
+    caption,
+    encrypt,
+    recipientIdentityKey,
+}: SendImageMessageParams): Promise<{ messageId: string }> {
+    const messageId = generateMessageId();
+    const permanentUri = await saveSentImage(imageUri, messageId);
+    const imageBytes = await readImageBytes(permanentUri);
+
+    let ciphertext: RatchetEncryptResult;
+    try {
+        const ad = await constructSenderAD(session.iKey, recipientIdentityKey);
+        const timestampSeconds = Math.floor(Date.now() / 1000);
+        const framedPayload = encodeImagePayload(timestampSeconds, caption || "", imageBytes);
+        const result = await encrypt(recipientUserId, framedPayload, ad);
+        if (!result) {
+            throw new EncryptionError(recipientUserId);
+        }
+        ciphertext = result;
+    } catch (e) {
+        if (e instanceof EncryptionError) throw e;
+        throw new EncryptionError(recipientUserId, e as Error);
+    }
+
+    const now = Date.now();
+    const payload = {
+        ciphertext: toBase64(ciphertext.ciphertext),
+        header: toBase64(ciphertext.header),
+        timestamp: now,
+    };
+    const payloadStr = JSON.stringify(payload);
+
+    let outboxId: number;
+    const topic = buildMessageTopic(
+        recipientUserId, recipientDeviceId,
+        session.userId!, session.deviceId!
+    );
+    try {
+        await saveMessage(recipientUserId, {
+            id: messageId,
+            content: permanentUri,
+            sender_id: 'me',
+            status: 'pending',
+            created_at: now,
+            type: 'image',
+            caption: caption?.trim() || undefined,
+        });
+        outboxId = await saveToOutbox(recipientUserId, messageId, topic, payloadStr);
+    } catch (e) {
+        throw new OutboxPersistError(recipientUserId, e as Error);
+    }
+
+    try {
+        const { isConnected } = useMqttStore.getState();
+        if (isConnected) {
+            await attemptPublish(outboxId, recipientUserId, messageId, topic, payloadStr);
+        }
+    } catch (e) {
+        console.error('Publish attempt failed for image message (will retry from outbox):', e);
     }
 
     return { messageId };
