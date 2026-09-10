@@ -1,4 +1,30 @@
 import type { ExpoConfig } from "expo/config";
+import type { ConfigPlugin } from "expo/config-plugins";
+import { withAndroidManifest } from "expo/config-plugins";
+
+const withOptionalMicrophone: ConfigPlugin = (config) => {
+  return withAndroidManifest(config, (config) => {
+    const manifest = config.modResults.manifest;
+    if (!manifest['uses-feature']) {
+      manifest['uses-feature'] = [];
+    }
+    
+    const hasMic = manifest['uses-feature'].some(
+      (feature: any) => feature.$['android:name'] === 'android.hardware.microphone'
+    );
+    
+    if (!hasMic) {
+      manifest['uses-feature'].push({
+        $: {
+          'android:name': 'android.hardware.microphone',
+          'android:required': 'false',
+        },
+      });
+    }
+    
+    return config;
+  });
+};
 
 const config: ExpoConfig = {
   name: "DeezChatz",
@@ -96,6 +122,35 @@ const config: ExpoConfig = {
       {
         microphonePermission:
           "DeezChatz needs access to your microphone to record voice messages.",
+      },
+    ],
+    withOptionalMicrophone,
+    [
+      "expo-build-properties",
+      {
+        android: {
+          enableProguardInReleaseBuilds: true,
+          shrinkResourcesInReleaseBuilds: true,
+          extraProguardRules: `
+            # Keep your app classes
+            -keep class in.deez.chatz.** { *; }
+            
+            # React Native essentials
+            -keep class com.facebook.react.** { *; }
+            -keep class com.facebook.hermes.** { *; }
+            
+            # Preserve debugging info
+            -keepattributes SourceFile,LineNumberTable
+            -keepattributes *Annotation*
+            
+            # 3rd party libs
+            -dontwarn io.netty.**
+            -dontwarn com.hivemq.client.**
+            -dontwarn org.slf4j.**
+            -dontwarn org.eclipse.jetty.**
+            -dontwarn reactor.blockhound.**
+          `,
+        },
       },
     ],
   ],
