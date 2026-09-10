@@ -3,7 +3,7 @@ import type { ExpoConfig } from "expo/config";
 const config: ExpoConfig = {
   name: "DeezChatz",
   slug: "deezchatz",
-  version: "0.7.1",
+  version: "0.8.0",
   orientation: "portrait",
   icon: "./src/assets/images/android-icon-foreground.png",
   scheme: "deezchatz",
@@ -26,7 +26,7 @@ const config: ExpoConfig = {
     },
     predictiveBackGestureEnabled: true,
     package: "in.deez.chatz",
-    versionCode: 7,
+    versionCode: 8,
     googleServicesFile: "./google-services.json",
     blockedPermissions: [
       "android.permission.SYSTEM_ALERT_WINDOW",

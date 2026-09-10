@@ -5,6 +5,23 @@ All notable changes to the **DeezChatz Mobile** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-09-10
+
+### Added
+- **End-to-End Encrypted Image Messaging**: Secure photo transmission over MQTT using Signal Protocol (X3DH and Double Ratchet).
+- **Image Compression & Media Storage**: Automatic aspect-ratio preserving JPEG compression (1200px max dimension, 0.7 quality) and WhatsApp-style filesystem storage hierarchy (`Media/Images/` and `Media/Images/Sent/`).
+- **Image Preview & Captioning**: In-app preview modal allowing users to review picked photos and add optional captions before sending.
+- **Interactive Full-Screen Image Viewer**: Photo viewer with pinch-to-zoom and pan gestures powered by `react-native-gesture-handler` and `react-native-reanimated`.
+- **Database Migrations**: Per-chat SQLite migration adding `caption` column to the `messages` table and image message support.
+
+### Changed
+- Updated Expo SDK 57 dependencies (`@expo/ui`, `expo`, `expo-glass-effect`, `expo-router`).
+- Wrapped root layout and modal viewer with `GestureHandlerRootView`.
+- Bumped Android `versionCode` to `8`.
+
+### Fixed
+- Fixed Android local notification scheduling trigger delay.
+
 ---
 
 ## [0.7.1] - 2026-09-05
