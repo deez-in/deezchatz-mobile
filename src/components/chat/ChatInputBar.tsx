@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { StyledButton, StyledTextInput } from "@/src/components/ui";
@@ -11,6 +11,7 @@ export interface ChatInputBarProps {
   message: string;
   onChangeMessage: (text: string) => void;
   onSendMessage: (text: string) => void;
+  onPickImage?: () => void;
   voiceState: VoiceState;
   recordingDuration: number;
   isPlayingPreview: boolean;
@@ -29,6 +30,7 @@ export default function ChatInputBar({
   message,
   onChangeMessage,
   onSendMessage,
+  onPickImage,
   voiceState,
   recordingDuration,
   isPlayingPreview,
@@ -122,14 +124,36 @@ export default function ChatInputBar({
       ])}
     >
       {voiceState === "idle" ? (
-        <StyledTextInput
-          style={styles.messageInput}
-          placeholder={isBlocked ? "You have blocked this contact" : "Send message"}
-          value={message}
-          onChangeText={onChangeMessage}
-          multiline
-          editable={!isBlocked}
-        />
+        <>
+          {onPickImage && (
+            <Pressable
+              onPress={onPickImage}
+              disabled={isBlocked}
+              style={({ pressed }) => [
+                styles.attachButton,
+                pressed && styles.attachButtonPressed,
+                isBlocked && styles.attachButtonDisabled,
+              ]}
+              hitSlop={8}
+              accessibilityLabel="Attach photo"
+              testID="attach-image-button"
+            >
+              <Ionicons
+                name="image-outline"
+                size={24}
+                color={(isBlocked ? colors.outline : colors.primary) as string}
+              />
+            </Pressable>
+          )}
+          <StyledTextInput
+            style={styles.messageInput}
+            placeholder={isBlocked ? "You have blocked this contact" : "Send message"}
+            value={message}
+            onChangeText={onChangeMessage}
+            multiline
+            editable={!isBlocked}
+          />
+        </>
       ) : (
         <VoiceRecordBar
           mode={voiceState}
@@ -184,5 +208,19 @@ const styles = StyleSheet.create({
   },
   recordingMicButton: {
     backgroundColor: "#FF453A",
+  },
+  attachButton: {
+    padding: 8,
+    marginLeft: 6,
+    marginRight: 2,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  attachButtonPressed: {
+    opacity: 0.6,
+  },
+  attachButtonDisabled: {
+    opacity: 0.4,
   },
 });

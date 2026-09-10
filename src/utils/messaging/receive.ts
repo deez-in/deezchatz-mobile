@@ -72,6 +72,17 @@ export async function receiveInitialMessage({
             };
         }
 
+        if (decoded.type === 'image') {
+            return {
+                type: 'image',
+                imageBytes: decoded.imageBytes,
+                caption: decoded.caption,
+                timestamp: decoded.timestamp,
+                senderUserId,
+                sharedSecret,
+            };
+        }
+
         return {
             type: 'text',
             content: decoded.text,
@@ -112,6 +123,16 @@ export async function receiveMessage({
             return {
                 type: 'voice',
                 audioBytes: decoded.audioBytes,
+                senderUserId,
+            };
+        }
+
+        if (decoded.type === 'image') {
+            return {
+                type: 'image',
+                imageBytes: decoded.imageBytes,
+                caption: decoded.caption,
+                timestamp: decoded.timestamp,
                 senderUserId,
             };
         }

@@ -1,5 +1,5 @@
 export type MessageStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
-export type MessageType = 'message' | 'system' | 'voice';
+export type MessageType = 'message' | 'system' | 'voice' | 'image';
 
 export interface Message {
     id: string;
@@ -9,6 +9,7 @@ export interface Message {
     received_at?: number;
     status: MessageStatus;
     type?: MessageType;
+    caption?: string;
 }
 
 export type ChatSession = {

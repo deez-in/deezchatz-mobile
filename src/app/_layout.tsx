@@ -23,6 +23,8 @@ SplashScreen.setOptions({
 
 SplashScreen.preventAutoHideAsync();
 
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+
 export default function RootLayout() {
   const { isAuthenticated } = useSession();
 
@@ -31,9 +33,11 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <ThemeProvider>
-      <InnerLayout isAuthenticated={isAuthenticated} />
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider>
+        <InnerLayout isAuthenticated={isAuthenticated} />
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
 
