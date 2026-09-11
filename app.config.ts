@@ -2,34 +2,46 @@ import type { ExpoConfig } from "expo/config";
 import type { ConfigPlugin } from "expo/config-plugins";
 import { withAndroidManifest } from "expo/config-plugins";
 
-const withOptionalMicrophone: ConfigPlugin = (config) => {
+const withOptionalHardwareFeatures: ConfigPlugin = (config) => {
   return withAndroidManifest(config, (config) => {
     const manifest = config.modResults.manifest;
-    if (!manifest['uses-feature']) {
-      manifest['uses-feature'] = [];
+    if (!manifest["uses-feature"]) {
+      manifest["uses-feature"] = [];
     }
-    
-    const hasMic = manifest['uses-feature'].some(
-      (feature: any) => feature.$['android:name'] === 'android.hardware.microphone'
-    );
-    
-    if (!hasMic) {
-      manifest['uses-feature'].push({
-        $: {
-          'android:name': 'android.hardware.microphone',
-          'android:required': 'false',
-        },
-      });
+
+    const optionalFeatures = [
+      "android.hardware.camera",
+      "android.hardware.camera.autofocus",
+      "android.hardware.camera.front",
+      "android.hardware.microphone",
+    ];
+
+    for (const featureName of optionalFeatures) {
+      const existing = manifest["uses-feature"].find(
+        (f: any) => f.$["android:name"] === featureName
+      );
+
+      if (existing) {
+        existing.$["android:required"] = "false";
+      } else {
+        manifest["uses-feature"].push({
+          $: {
+            "android:name": featureName,
+            "android:required": "false",
+          },
+        });
+      }
     }
-    
+
     return config;
   });
 };
 
+
 const config: ExpoConfig = {
   name: "DeezChatz",
   slug: "deezchatz",
-  version: "0.8.0",
+  version: "0.8.1",
   orientation: "portrait",
   icon: "./src/assets/images/android-icon-foreground.png",
   scheme: "deezchatz",
@@ -52,7 +64,7 @@ const config: ExpoConfig = {
     },
     predictiveBackGestureEnabled: true,
     package: "in.deez.chatz",
-    versionCode: 8,
+    versionCode: 9,
     googleServicesFile: "./google-services.json",
     blockedPermissions: [
       "android.permission.SYSTEM_ALERT_WINDOW",
@@ -124,7 +136,7 @@ const config: ExpoConfig = {
           "DeezChatz needs access to your microphone to record voice messages.",
       },
     ],
-    withOptionalMicrophone,
+    withOptionalHardwareFeatures,
     [
       "expo-build-properties",
       {
@@ -144,11 +156,17 @@ const config: ExpoConfig = {
             -keepattributes *Annotation*
             
             # 3rd party libs
-            -dontwarn io.netty.**
-            -dontwarn com.hivemq.client.**
             -dontwarn org.slf4j.**
             -dontwarn org.eclipse.jetty.**
             -dontwarn reactor.blockhound.**
+            
+            # HiveMQ and Netty requirements
+            -keep class io.netty.** { *; }
+            -keep class org.jctools.** { *; }
+            -keep class com.hivemq.client.** { *; }
+            
+            # Keep Native MQTT module classes
+            -keep class expo.modules.nativemqtt.** { *; }
           `,
         },
       },
