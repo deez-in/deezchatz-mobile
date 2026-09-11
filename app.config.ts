@@ -142,7 +142,7 @@ const config: ExpoConfig = {
       {
         android: {
           enableProguardInReleaseBuilds: true,
-          shrinkResourcesInReleaseBuilds: true,
+          enableShrinkResourcesInReleaseBuilds: true,
           extraProguardRules: `
             # Keep your app classes
             -keep class in.deez.chatz.** { *; }
@@ -170,6 +170,10 @@ const config: ExpoConfig = {
             
             # Keep Native MQTT module classes
             -keep class expo.modules.nativemqtt.** { *; }
+            
+            # Keep Notifications and TaskManager for Background Tasks
+            -keep class expo.modules.notifications.** { *; }
+            -keep class expo.modules.taskManager.** { *; }
           `,
         },
       },
