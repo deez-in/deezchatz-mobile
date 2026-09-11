@@ -156,6 +156,9 @@ const config: ExpoConfig = {
             -keepattributes *Annotation*
             
             # 3rd party libs
+            -dontwarn io.netty.**
+            -dontwarn com.hivemq.client.**
+            -dontwarn org.jctools.**
             -dontwarn org.slf4j.**
             -dontwarn org.eclipse.jetty.**
             -dontwarn reactor.blockhound.**
