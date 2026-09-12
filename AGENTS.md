@@ -247,7 +247,7 @@ For **Double Ratchet** (ongoing messaging encryption):
 ### Backend & Transport
 
 - Communicates with **DeezChatz API** (REST) on port 3000 for registration and key discovery.
-- Uses **RMQTT broker** over TLS for real-time messaging.
+- Uses **RMQTT broker** over TLS for real-time messaging. MQTT connections are authenticated using a signature from the device's Signed Prekey (preKey) acting as the password, and the deviceId as the clientId.
 - *Note*: The backend API has a private port 3001 used internally for offline webhooks. Mobile clients never communicate with port 3001.
 
 ### Expo Router

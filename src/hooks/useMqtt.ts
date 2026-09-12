@@ -2,7 +2,8 @@
 import MqttClient, { MqttMessage } from "expo-native-mqtt";
 import { useEffect } from "react";
 import { Alert } from "react-native";
-import { toString } from "@/src/utils/helpers/encoding";
+import LibsignalDezireModule from "expo-libsignal-dezire";
+import { toString, toBytes, toBase64 } from "@/src/utils/helpers/encoding";
 import useMqttStore from "@/src/store/useMqttStore";
 import useSession from "@/src/store/useSession";
 import { Session } from "@/src/models/store";
@@ -201,16 +202,33 @@ const useMqtt = (topic: string) => {
                 subscriptions.push(disconnectSub);
 
                 const errorSub = MqttClient.addListener("onMqttError", (err: unknown) => {
+                    const errMsg = typeof err === 'object' && err !== null ? (err as any).error || (err as any).message : String(err);
+                    if (typeof errMsg === 'string' && errMsg.includes('BAD_USER_NAME_OR_PASSWORD')) {
+                        console.debug("MQTT Authentication pending/skipped.");
+                        return;
+                    }
                     console.error("MQTT Error:", err);
                 });
                 subscriptions.push(errorSub);
 
                 // 3. Connect
-                const clientId = `deezchatz-${userId}-${deviceId}`;
+                const session = useSession.getState();
+                const preKey = session.preKey;
+                if (!preKey || preKey.length === 0) {
+                    console.error("Missing preKey, cannot connect to MQTT.");
+                    return;
+                }
+                const epochSeconds = Math.floor(Date.now() / 1000).toString();
+                const payloadStr = `${userId}${epochSeconds}`;
+                const payload = toBytes(payloadStr);
+                const { signature, vrf } = await LibsignalDezireModule.vxeddsaSign(preKey, payload);
+                const password = `${toBase64(signature)}${toBase64(vrf)}${epochSeconds}`;
+                
+                const clientId = deviceId;
                 await MqttClient.connect(
                     `${process.env.EXPO_PUBLIC_MQTT_URL}`,
-                    "dezire",
-                    "test1234",
+                    userId,
+                    password,
                     {
                         clientId,
                         cleanSession: false,
@@ -221,6 +239,11 @@ const useMqtt = (topic: string) => {
                 setClient(MqttClient);
 
             } catch (error) {
+                const errMsg = typeof error === 'object' && error !== null ? (error as any).message || String(error) : String(error);
+                if (typeof errMsg === 'string' && errMsg.includes('BAD_USER_NAME_OR_PASSWORD')) {
+                    console.debug("MQTT Connection Auth pending/skipped.");
+                    return;
+                }
                 console.error("MQTT Connection Error:", error);
                 Alert.alert(
                     "Error",
