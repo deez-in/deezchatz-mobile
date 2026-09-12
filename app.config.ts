@@ -41,7 +41,7 @@ const withOptionalHardwareFeatures: ConfigPlugin = (config) => {
 const config: ExpoConfig = {
   name: "DeezChatz",
   slug: "deezchatz",
-  version: "0.8.2",
+  version: "0.8.3",
   orientation: "portrait",
   icon: "./src/assets/images/android-icon-foreground.png",
   scheme: "deezchatz",
@@ -64,7 +64,7 @@ const config: ExpoConfig = {
     },
     predictiveBackGestureEnabled: true,
     package: "in.deez.chatz",
-    versionCode: 10,
+    versionCode: 11,
     googleServicesFile: "./google-services.json",
     blockedPermissions: [
       "android.permission.SYSTEM_ALERT_WINDOW",
