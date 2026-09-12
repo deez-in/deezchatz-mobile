@@ -17,11 +17,6 @@ export interface VoiceRecordingResult {
   durationMs?: number;
 }
 
-export interface SendVoiceMessageParams {
-  recipientId: string;
-  duration: number;
-  uri?: string;
-}
 
 export const DEFAULT_RECORDING_OPTIONS: RecordingOptions = {
   sampleRate: 48000,
@@ -113,17 +108,6 @@ export function formatRecordingTime(seconds: number): string {
   const formattedMins = mins < 10 ? `0${mins}` : `${mins}`;
   const formattedSecs = secs < 10 ? `0${secs}` : `${secs}`;
   return `${formattedMins}:${formattedSecs}`;
-}
-
-export async function sendVoiceMessage(
-  params: SendVoiceMessageParams
-): Promise<void> {
-  console.log("[sendVoiceMessage stub] Voice message queued:", {
-    recipientId: params.recipientId,
-    duration: params.duration,
-    uri: params.uri,
-  });
-  return;
 }
 
 export {
