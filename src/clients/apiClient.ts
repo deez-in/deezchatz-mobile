@@ -45,7 +45,7 @@ export async function apiRequest<T = unknown>(
       throw new Error("Cannot authenticate: missing userId or preKey");
     }
 
-    const timestamp = Date.now().toString();
+    const timestamp = Math.floor(Date.now() / 1000).toString();
     const payload = `${session.userId}${timestamp}`;
     const { signature, vrf } = await LibsignalDezireModule.vxeddsaSign(
       session.preKey,

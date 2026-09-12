@@ -149,36 +149,15 @@ const config: ExpoConfig = {
           enableProguardInReleaseBuilds: true,
           enableShrinkResourcesInReleaseBuilds: true,
           extraProguardRules: `
-            # Keep your app classes
+            # Keep app classes
             -keep class in.deez.chatz.** { *; }
-            
-            # React Native essentials
-            -keep class com.facebook.react.** { *; }
-            -keep class com.facebook.hermes.** { *; }
             
             # Preserve debugging info
             -keepattributes SourceFile,LineNumberTable
             -keepattributes *Annotation*
             
-            # 3rd party libs
-            -dontwarn io.netty.**
-            -dontwarn com.hivemq.client.**
-            -dontwarn org.jctools.**
-            -dontwarn org.slf4j.**
-            -dontwarn org.eclipse.jetty.**
-            -dontwarn reactor.blockhound.**
-            
-            # HiveMQ and Netty requirements
-            -keep class io.netty.** { *; }
-            -keep class org.jctools.** { *; }
-            -keep class com.hivemq.client.** { *; }
-            
-            # Keep Native MQTT module classes
-            -keep class expo.modules.nativemqtt.** { *; }
-            
-            # Keep Notifications and TaskManager for Background Tasks
-            -keep class expo.modules.notifications.** { *; }
-            -keep class expo.modules.taskManager.** { *; }
+            # Background Tasks (Expo reflection fix)
+            -keep class expo.modules.adapters.react.apploader.** { *; }
           `,
         },
       },
