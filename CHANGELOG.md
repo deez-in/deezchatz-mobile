@@ -5,6 +5,14 @@ All notable changes to the **DeezChatz Mobile** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.4] - 2026-09-12
+
+### Fixed
+- Added `WRITE_EXTERNAL_STORAGE` and `READ_EXTERNAL_STORAGE` Android permissions to fix crashes when saving media on older Android versions.
+- Fixed an uncaught exception in the internal storage fallback logic when writing received images or audio to disk fails due to missing permissions.
+- Removed a 1-second delay in local notification scheduling that caused background push notifications to be dropped by the OS on physical devices due to battery optimization.
+- Bumped Android `versionCode` to `12`.
+
 ## [0.8.3] - 2026-09-12
 
 ### Added
