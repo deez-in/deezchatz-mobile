@@ -103,9 +103,22 @@ export async function saveSentImage(
   await ensureImageDirectories();
 
   const sourceFile = new File(cacheUri);
-  const targetFile = new File(getImageSentDirectory(), `${messageId}.jpg`);
+  let targetFile = new File(getImageSentDirectory(), `${messageId}.jpg`);
 
-  await sourceFile.copy(targetFile, { overwrite: true });
+  try {
+    await sourceFile.copy(targetFile, { overwrite: true });
+  } catch (error) {
+    if (Platform.OS === "android" && !useInternalStorageFallback) {
+      console.warn("Failed to write external, falling back:", error);
+      useInternalStorageFallback = true;
+      await ensureImageDirectories();
+      targetFile = new File(getImageSentDirectory(), `${messageId}.jpg`);
+      await sourceFile.copy(targetFile, { overwrite: true });
+    } else {
+      throw error;
+    }
+  }
+
   return targetFile.uri;
 }
 
@@ -123,10 +136,23 @@ export async function saveReceivedImage(
 ): Promise<string> {
   await ensureImageDirectories();
 
-  const targetFile = new File(getImageDirectory(), `${messageId}.jpg`);
+  let targetFile = new File(getImageDirectory(), `${messageId}.jpg`);
 
-  targetFile.create({ overwrite: true });
-  targetFile.write(bytes);
+  try {
+    targetFile.create({ overwrite: true });
+    targetFile.write(bytes);
+  } catch (error) {
+    if (Platform.OS === "android" && !useInternalStorageFallback) {
+      console.warn("Failed to write external, falling back:", error);
+      useInternalStorageFallback = true;
+      await ensureImageDirectories();
+      targetFile = new File(getImageDirectory(), `${messageId}.jpg`);
+      targetFile.create({ overwrite: true });
+      targetFile.write(bytes);
+    } else {
+      throw error;
+    }
+  }
 
   return targetFile.uri;
 }

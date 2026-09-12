@@ -110,9 +110,22 @@ export async function saveSentVoiceMessage(
   await ensureVoiceDirectories();
 
   const sourceFile = new File(cacheUri);
-  const targetFile = new File(getVoiceSentDirectory(), `${messageId}.opus`);
+  let targetFile = new File(getVoiceSentDirectory(), `${messageId}.opus`);
 
-  await sourceFile.copy(targetFile, { overwrite: true });
+  try {
+    await sourceFile.copy(targetFile, { overwrite: true });
+  } catch (error) {
+    if (Platform.OS === "android" && !useInternalStorageFallback) {
+      console.warn("Failed to write external, falling back:", error);
+      useInternalStorageFallback = true;
+      await ensureVoiceDirectories();
+      targetFile = new File(getVoiceSentDirectory(), `${messageId}.opus`);
+      await sourceFile.copy(targetFile, { overwrite: true });
+    } else {
+      throw error;
+    }
+  }
+
   return targetFile.uri;
 }
 
@@ -130,10 +143,23 @@ export async function saveReceivedVoiceMessage(
 ): Promise<string> {
   await ensureVoiceDirectories();
 
-  const targetFile = new File(getVoiceDirectory(), `${messageId}.opus`);
+  let targetFile = new File(getVoiceDirectory(), `${messageId}.opus`);
 
-  targetFile.create({ overwrite: true });
-  targetFile.write(bytes);
+  try {
+    targetFile.create({ overwrite: true });
+    targetFile.write(bytes);
+  } catch (error) {
+    if (Platform.OS === "android" && !useInternalStorageFallback) {
+      console.warn("Failed to write external, falling back:", error);
+      useInternalStorageFallback = true;
+      await ensureVoiceDirectories();
+      targetFile = new File(getVoiceDirectory(), `${messageId}.opus`);
+      targetFile.create({ overwrite: true });
+      targetFile.write(bytes);
+    } else {
+      throw error;
+    }
+  }
 
   return targetFile.uri;
 }

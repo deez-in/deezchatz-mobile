@@ -59,7 +59,7 @@ export async function showMessageNotification(
       sound: true,
       priority: Notifications.AndroidNotificationPriority.MAX,
     },
-    trigger: Platform.OS === 'android' ? { seconds: 1, channelId: MESSAGES_CHANNEL_ID } : null,
+    trigger: Platform.OS === 'android' ? { channelId: MESSAGES_CHANNEL_ID } : null,
   });
 }
 

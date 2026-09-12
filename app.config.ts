@@ -66,6 +66,11 @@ const config: ExpoConfig = {
     package: "in.deez.chatz",
     versionCode: 11,
     googleServicesFile: "./google-services.json",
+    permissions: [
+      "android.permission.READ_EXTERNAL_STORAGE",
+      "android.permission.WRITE_EXTERNAL_STORAGE",
+      "android.permission.RECORD_AUDIO"
+    ],
     blockedPermissions: [
       "android.permission.SYSTEM_ALERT_WINDOW",
       "android.permission.WRITE_CONTACTS",
