@@ -209,6 +209,7 @@ export default function Register() {
           onPress={() => setTosAccepted((prev) => !prev)}
         >
           <Ionicons
+	    testID="agree-to-tos-checkbox"
             name={tosAccepted ? "checkbox" : "square-outline"}
             size={22}
             color={tosAccepted ? (colors.primary as string) : (colors.outline as string)}

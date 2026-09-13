@@ -49,7 +49,7 @@ export default function Verify() {
       );
       session.markDeviceRegistered(response.deviceId);
 
-      router.replace("/");
+      router.replace("/permissions");
     } catch (error) {
       console.error("Error verifying profile", error);
       Alert.alert(

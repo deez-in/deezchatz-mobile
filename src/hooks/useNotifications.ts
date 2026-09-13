@@ -4,7 +4,6 @@ import { router } from 'expo-router';
 import useSession from '@/src/store/useSession';
 import { getContactByUserId } from '@/src/utils/db';
 import {
-  requestNotificationPermission,
   fetchDeviceToken,
   registerTokenWithBackend,
   setupNotificationChannel,
@@ -23,7 +22,7 @@ export default function useNotifications(isAuthenticated: boolean) {
     if (!isAuthenticated) return;
 
     async function setupCore() {
-      const status = await requestNotificationPermission();
+      const { status } = await Notifications.getPermissionsAsync();
       if (status !== 'granted') return;
 
       try {
@@ -66,6 +65,8 @@ export default function useNotifications(isAuthenticated: boolean) {
 
     async function syncToken() {
       if (!googleOauthToken) return;
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== 'granted') return;
       const token = await fetchDeviceToken();
       if (!token) return;
 

@@ -1,0 +1,41 @@
+appId: in.deez.chatz
+---
+- launchApp:
+    clearState: true # Start fresh to ensure we hit the registration screen
+
+# Verify we are on the welcome/registration screen
+- assertVisible: "Continue with Google"
+
+# Agree to TOS & Privacy Policy
+- tapOn: 
+    id: "agree-to-tos-checkbox"
+# Initiate login
+- tapOn: "Continue with Google"
+
+# Handle potential native Google sign-in prompts if they appear
+- extendedWaitUntil:
+    visible: "Continue" # Often the native consent screen has a continue/allow button
+    timeout: 10000
+- tapOn:
+    text: "Continue"
+    optional: true # Might not appear if already consented in simulator
+
+# After successful auth, we should land on the Verify Profile screen
+- extendedWaitUntil:
+    visible: "Verify Profile"
+    timeout: 15000
+
+# Tap the phone number input and enter a number
+- tapOn: "Phone Number"
+- inputText: "9999999999"
+
+# Tap the complete registration button
+- tapOn: "Complete Registration"
+
+# After completing registration, we should land on the main Chat list
+- extendedWaitUntil:
+    visible: "Chats"
+    timeout: 15000
+
+# Verify we are successfully in the app
+- assertVisible: "Chats"

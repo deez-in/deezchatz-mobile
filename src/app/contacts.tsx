@@ -6,15 +6,13 @@ import {
   Pressable,
   StyleSheet,
   View,
-  Dimensions,
   Linking,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { BottomSheet, Button, RNHostView, Host } from "@expo/ui";
 import { router } from "expo-router";
 
-import { StyledTextInput, Card, StyledText } from "@/src/components/ui";
+import { StyledTextInput, Card, StyledText, StyledButton } from "@/src/components/ui";
 import {
   getContacts,
   getContactsPermissionStatus,
@@ -27,7 +25,6 @@ export default function Contacts() {
   const { colors } = useTheme();
   const [contacts, setContacts] = useState<SplitContact[] | undefined>();
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [showDisclosureSheet, setShowDisclosureSheet] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<string | null>(null);
 
   const loadContacts = useCallback(async () => {
@@ -35,31 +32,18 @@ export default function Contacts() {
     setContacts(fetched ?? []);
   }, []);
 
-  const handleProceed = async () => {
-    setShowDisclosureSheet(false);
+  const handleAllowAccessPress = useCallback(async () => {
     const status = await requestContactsPermission();
     setPermissionStatus(status);
     if (status === "granted") {
       await loadContacts();
-    }
-  };
-
-  const handleAllowAccessPress = useCallback(async () => {
-    if (Platform.OS === "android") {
-      setShowDisclosureSheet(true);
     } else {
-      const status = await requestContactsPermission();
-      setPermissionStatus(status);
-      if (status === "granted") {
-        await loadContacts();
-      } else {
-        setContacts([]);
-        if (permissionStatus === "denied") {
-          Linking.openSettings().catch(() => {});
-        }
+      setContacts([]);
+      if (status === "denied") {
+        Linking.openSettings().catch(() => {});
       }
     }
-  }, [loadContacts, permissionStatus]);
+  }, [loadContacts]);
 
   useEffect(() => {
     let isMounted = true;
@@ -74,24 +58,6 @@ export default function Contacts() {
       } else {
         setPermissionStatus(currentStatus);
         setContacts([]);
-
-        if (Platform.OS === "android") {
-          // On Android, show disclosure bottom sheet before requesting permission
-          if (isMounted) {
-            setShowDisclosureSheet(true);
-          }
-        } else {
-          // On iOS, trigger native permission dialog directly if not yet determined
-          if (currentStatus === "undetermined") {
-            const requestedStatus = await requestContactsPermission();
-            if (!isMounted) return;
-            setPermissionStatus(requestedStatus);
-            if (requestedStatus === "granted") {
-              const fetched = await getContacts();
-              if (isMounted) setContacts(fetched ?? []);
-            }
-          }
-        }
       }
     })();
     return () => {
@@ -220,53 +186,6 @@ export default function Contacts() {
     grantButton: {
       marginTop: 8,
     },
-    sheetContainer: {
-      width: Dimensions.get("window").width,
-      paddingHorizontal: 20,
-      paddingTop: 16,
-      paddingBottom: Platform.OS === "ios" ? insets.bottom + 20 : 24,
-      backgroundColor: colors.surface,
-      gap: 16,
-    },
-    sheetHeader: {
-      flexDirection: "row" as const,
-      alignItems: "center" as const,
-      gap: 14,
-    },
-    sheetIconContainer: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: colors.primaryContainer,
-      justifyContent: "center" as const,
-      alignItems: "center" as const,
-    },
-    sheetHeaderText: {
-      flex: 1,
-      gap: 4,
-    },
-    sheetTitle: {
-      fontSize: 18,
-      fontWeight: "700" as const,
-      color: colors.onSurface,
-    },
-    sheetDescription: {
-      fontSize: 14,
-      color: colors.onSurfaceVariant,
-      lineHeight: 20,
-    },
-    sheetButtonRow: {
-      flexDirection: "row" as const,
-      gap: 12,
-      width: "100%" as const,
-      marginTop: 8,
-    },
-    cancelButton: {
-      width: (Dimensions.get("window").width - 52) / 2,
-    },
-    proceedButton: {
-      width: (Dimensions.get("window").width - 52) / 2,
-    },
   }));
 
   const getInitials = (contact: SplitContact) => {
@@ -313,16 +232,14 @@ export default function Contacts() {
           />
           <StyledText style={themedStyles.emptyTitle}>Contacts Access Needed</StyledText>
           <StyledText style={themedStyles.emptySubtext}>
-            Allow access to contacts to find your friends on DeezChatz.
+            DeezChatz accesses your contacts on-device so you can start conversations with friends. When you start a chat, only that recipient&apos;s phone number is queried securely to discover their encryption keys. Your contacts are not uploaded in bulk and are never stored on our servers.
           </StyledText>
           <View style={themedStyles.grantButton}>
-            <Host matchContents>
-              <Button
-                variant="filled"
-                label="Allow Access"
-                onPress={handleAllowAccessPress}
-              />
-            </Host>
+            <StyledButton onPress={handleAllowAccessPress} style={{ paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20 }}>
+              <StyledText style={{ color: colors.onPrimary, fontWeight: "600", fontSize: 16 }}>
+                Allow Access
+              </StyledText>
+            </StyledButton>
           </View>
         </View>
       );
@@ -405,54 +322,6 @@ export default function Contacts() {
         }}
       />
 
-      {Platform.OS === "android" && (
-        <BottomSheet
-          isPresented={showDisclosureSheet}
-          onDismiss={() => setShowDisclosureSheet(false)}
-          showDragIndicator={true}
-        >
-          <RNHostView matchContents>
-            <View style={themedStyles.sheetContainer}>
-              {/* Header: icon + title/description side-by-side */}
-              <View style={themedStyles.sheetHeader}>
-                <View style={themedStyles.sheetIconContainer}>
-                  <Ionicons
-                    name="people"
-                    size={24}
-                    color={colors.onPrimaryContainer as string}
-                  />
-                </View>
-                <View style={themedStyles.sheetHeaderText}>
-                  <StyledText style={themedStyles.sheetTitle}>Contacts Access</StyledText>
-                  <StyledText style={themedStyles.sheetDescription}>
-                    DeezChatz accesses your contacts on-device so you can start conversations with friends. When you start a chat, only that recipient&apos;s phone number is queried securely to discover their encryption keys. Your contacts are not uploaded in bulk and are never stored on our servers.
-                  </StyledText>
-                </View>
-              </View>
-
-              {/* Action buttons side-by-side */}
-              <View style={themedStyles.sheetButtonRow}>
-                <Host matchContents>
-                  <Button
-                    variant="outlined"
-                    label="Not Now"
-                    onPress={() => setShowDisclosureSheet(false)}
-                    style={themedStyles.cancelButton}
-                  />
-                </Host>
-                <Host matchContents>
-                  <Button
-                    variant="filled"
-                    label="Proceed"
-                    onPress={handleProceed}
-                    style={themedStyles.proceedButton}
-                  />
-                </Host>
-              </View>
-            </View>
-          </RNHostView>
-        </BottomSheet>
-      )}
     </SafeAreaView>
   );
 }

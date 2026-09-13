@@ -2,6 +2,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import { AppState, AppStateStatus, Alert, Platform } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import useSession from "./../store/useSession";
 import { ThemeProvider, useTheme } from "@/src/hooks/useTheme";
 import { isLiquidGlassAvailable } from "expo-glass-effect";
@@ -22,8 +23,6 @@ SplashScreen.setOptions({
 });
 
 SplashScreen.preventAutoHideAsync();
-
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export default function RootLayout() {
   const { isAuthenticated } = useSession();
@@ -120,7 +119,7 @@ function InnerLayout({ isAuthenticated }: { isAuthenticated: boolean }) {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={isAuthenticated}>
+      <Stack.Protected guard={isAuthenticated && session.isOnboardingComplete}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="profile" />
         <Stack.Screen name="chat/[userId]" />
@@ -145,8 +144,13 @@ function InnerLayout({ isAuthenticated }: { isAuthenticated: boolean }) {
           }}
         />
       </Stack.Protected>
+      <Stack.Protected guard={isAuthenticated && !session.isOnboardingComplete}>
+        <Stack.Screen name="permissions/index" />
+        <Stack.Screen name="permissions/contacts" />
+      </Stack.Protected>
       <Stack.Protected guard={!isAuthenticated}>
         <Stack.Screen name="register/index" />
+        <Stack.Screen name="register/verify" />
       </Stack.Protected>
     </Stack>
   );

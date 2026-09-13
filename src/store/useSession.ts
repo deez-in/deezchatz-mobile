@@ -27,6 +27,7 @@ const useSession = create(
       avatarUrl: null,
       pushToken: null,
       pushTokenRegistered: false,
+      isOnboardingComplete: false,
       iKey: new Uint8Array(),
       preKey: new Uint8Array(),
       devKey: new Uint8Array(),
@@ -36,6 +37,9 @@ const useSession = create(
       },
       setPushTokenRegistered: (registered) => {
         set({ pushTokenRegistered: registered });
+      },
+      markOnboardingCompleted: () => {
+        set({ isOnboardingComplete: true });
       },
       markDeviceRegistered: (deviceId) => {
         set({ isAuthenticated: true, deviceId });
@@ -63,6 +67,7 @@ const useSession = create(
           displayName: null,
           avatarUrl: null,
           pushTokenRegistered: false,
+          isOnboardingComplete: false,
           phone: { countryCode: "", number: 0 },
           iKey: new Uint8Array(),
           preKey: new Uint8Array(),
@@ -132,6 +137,7 @@ const useSession = create(
         merged.deviceId = merged.deviceId ?? null;
         merged.pushToken = merged.pushToken ?? null;
         merged.pushTokenRegistered = merged.pushTokenRegistered ?? false;
+        merged.isOnboardingComplete = merged.isOnboardingComplete ?? false;
 
         return merged;
       },

@@ -17,8 +17,10 @@ export type Session = {
     avatarUrl: string | null;
     pushToken: string | null;
     pushTokenRegistered: boolean;
+    isOnboardingComplete: boolean;
 
     // Actions
+    markOnboardingCompleted: () => void;
     setAuthenticatedUser: (user: {
         token: string;
         userId: string;

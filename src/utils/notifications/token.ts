@@ -29,7 +29,7 @@ export async function registerTokenWithBackend(
     await withRetry(
       async () => {
         try {
-          return await apiRequest("/register/device/fcm", {
+          return await apiRequest("/device/fcm", {
             method: "POST",
             authenticated: true,
             body: {

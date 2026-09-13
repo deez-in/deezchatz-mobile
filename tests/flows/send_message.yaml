@@ -1,0 +1,30 @@
+appId: in.deez.chatz
+---
+- launchApp
+
+# Verify we are on the main screen
+- assertVisible: "Chats"
+
+# Tap on a specific chat (assuming a dummy contact or previous chat exists)
+# In a real E2E environment, you might need to run a setup script first to ensure this contact exists
+- tapOn: "aaaaaaa" # Or whatever dummy contact name you use
+
+# Verify we entered the chat screen
+- assertVisible: "Send message"
+
+# Tap the input field and type a message
+- tapOn: "Send message"
+- inputText: "Hello from Maestro!"
+
+# Tap the send button (assuming there's an icon or text for sending)
+# Usually send buttons have accessibility labels like "Send" or specific icons
+- tapOn: 
+    id: "send-message-button" # Adjust this ID to match your actual send button's testID
+
+# Wait for the message to appear in the chat bubble list
+- extendedWaitUntil:
+    visible: "Hello from Maestro!"
+    timeout: 5000
+
+# Assert the message is visible
+- assertVisible: "Hello from Maestro!"
