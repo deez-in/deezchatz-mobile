@@ -8,7 +8,6 @@ import {
   discardAudioRecording,
   playPreviewAudio,
   stopPreviewAudio,
-  sendVoiceMessage,
 } from "@/src/utils/audio";
 
 describe("voiceRecorder utils", () => {
@@ -65,14 +64,5 @@ describe("voiceRecorder utils", () => {
       deleteSpy.mockRestore();
     });
 
-    it("executes sendVoiceMessage without error", async () => {
-      await expect(
-        sendVoiceMessage({
-          recipientId: "user-123",
-          duration: 5,
-          uri: "file:///mock/cache/recording_mock.opus",
-        })
-      ).resolves.toBeUndefined();
-    });
   });
 });

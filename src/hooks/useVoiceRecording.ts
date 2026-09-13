@@ -10,7 +10,6 @@ import {
   discardAudioRecording,
   playPreviewAudio,
   stopPreviewAudio,
-  sendVoiceMessage,
   addPlaybackStatusListener,
 } from "@/src/utils/audio";
 
@@ -199,12 +198,6 @@ export function useVoiceRecording(options: UseVoiceRecordingOptions = {}) {
 
       if (onSendVoice) {
         await onSendVoice(uri, duration);
-      } else if (recipientId) {
-        await sendVoiceMessage({
-          recipientId,
-          duration,
-          uri,
-        });
       }
 
       voiceStateRef.current = "idle";

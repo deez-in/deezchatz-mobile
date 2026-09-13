@@ -10,6 +10,10 @@ jest.mock('expo-secure-store', () => ({
 // Mock expo-crypto
 jest.mock('expo-crypto', () => ({
   getRandomBytesAsync: jest.fn().mockResolvedValue(new Uint8Array(32)),
+  getRandomValues: jest.fn((arr: Uint8Array) => {
+    for (let i = 0; i < arr.length; i++) arr[i] = Math.floor(Math.random() * 256);
+    return arr;
+  }),
   digestStringAsync: jest.fn(),
 }));
 
@@ -258,4 +262,20 @@ jest.mock('expo-contacts', () => ({
   SortTypes: {},
 }));
 
-
+// Mock expo-sqlite
+jest.mock('expo-sqlite', () => ({
+  openDatabaseSync: jest.fn(() => ({
+    execSync: jest.fn(),
+    runSync: jest.fn(),
+    getFirstSync: jest.fn(),
+    getAllSync: jest.fn().mockReturnValue([]),
+    closeSync: jest.fn(),
+  })),
+  openDatabaseAsync: jest.fn().mockResolvedValue({
+    execAsync: jest.fn(),
+    runAsync: jest.fn(),
+    getFirstAsync: jest.fn(),
+    getAllAsync: jest.fn().mockResolvedValue([]),
+    closeAsync: jest.fn(),
+  }),
+}));

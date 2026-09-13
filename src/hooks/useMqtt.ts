@@ -1,7 +1,7 @@
 // WARNING: Switch to npm import once published: import MqttClient from 'expo-native-mqtt';
 import MqttClient, { MqttMessage } from "expo-native-mqtt";
 import { useEffect } from "react";
-import { Alert } from "react-native";
+import { Alert, AppState, AppStateStatus } from "react-native";
 import LibsignalDezireModule from "expo-libsignal-dezire";
 import { toString, toBytes, toBase64 } from "@/src/utils/helpers/encoding";
 import useMqttStore from "@/src/store/useMqttStore";
@@ -138,92 +138,61 @@ const useMqtt = (topic: string) => {
     useEffect(() => {
         if (!topic || !userId || !deviceId) return;
 
+        let isMounted = true;
+        let isConnecting = false;
+        let reconnectAttempts = 0;
+        let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
         let subscriptions: { remove: () => void }[] = [];
 
-        const initMqtt = async () => {
+        const clearReconnectTimer = () => {
+            if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+                reconnectTimer = null;
+            }
+        };
+
+        const scheduleReconnect = () => {
+            if (!isMounted) return;
+            clearReconnectTimer();
+
+            // Exponential backoff: base 2s, factor 1.5x, max 30s with ±20% jitter
+            const baseDelay = 2000;
+            const factor = Math.pow(1.5, Math.min(reconnectAttempts, 6));
+            const cappedDelay = Math.min(baseDelay * factor, 30000);
+            const jitter = 0.8 + Math.random() * 0.4;
+            const delayMs = Math.floor(cappedDelay * jitter);
+
+            reconnectAttempts++;
+            console.debug(`[MQTT] Scheduling reconnect attempt #${reconnectAttempts} in ${delayMs}ms`);
+
+            reconnectTimer = setTimeout(() => {
+                if (isMounted) {
+                    connectMqtt(false);
+                }
+            }, delayMs);
+        };
+
+        const connectMqtt = async (isInitial = false) => {
+            if (!isMounted || isConnecting) return;
+            if (useMqttStore.getState().isConnected) return;
+
+            isConnecting = true;
             try {
-                // 1. Handle Messages — ciphertext-first: save raw payload to inbox
-                //    BEFORE any crypto, because CocoaMQTT auto-ACKs QoS 1 and the
-                //    broker will never redeliver if our processing fails.
-                const messageSub = MqttClient.addListener(
-                    "onMqttMessageReceived",
-                    async (data: MqttMessage) => {
-                        let inboxId: number | null = null;
-                        try {
-                            const payloadStr = toString(data.payload);
-
-                            // Step 1: Save raw ciphertext to inbox (fast, no crypto)
-                            inboxId = await saveToInbox(data.topic, payloadStr);
-
-                            // Step 2: Attempt full processing
-                            const session = useSession.getState();
-                            await processIncomingMessage(session, data.topic, payloadStr);
-
-                            // Step 3: Mark as done
-                            await markInboxProcessed(inboxId);
-                        } catch (e) {
-                            if (e instanceof BlockedContactError) {
-                                console.debug('[MQTT] Dropping and deleting message from blocked sender');
-                                if (inboxId !== null) {
-                                    await deleteFromInbox(inboxId).catch(() => {});
-                                }
-                                return;
-                            }
-                            console.error("Failed to process MQTT message:", e);
-                            // Entry stays 'pending' in inbox — will be retried on next
-                            // app foreground via processInboxRetries()
-                        }
-                    }
-                );
-                subscriptions.push(messageSub);
-
-                // 2. Handle Connection/Error Events
-                const connectSub = MqttClient.addListener("onMqttConnected", async () => {
-                    console.debug(`Connected to MQTT broker for topic: ${topic}`);
-                    setConnected(true);
-
-                    const topicPath = `/deezchatz/${userId}/${deviceId}/#`;
-                    try {
-                        await MqttClient.subscribe(topicPath, 1);
-                        console.debug(`Subscribed to ${topicPath}`);
-                    } catch (e) {
-                        console.error(`Failed to subscribe to ${topicPath}:`, e);
-                    }
-
-                    // Flush pending outbox entries on reconnect
-                    await processOutboxRetries();
-                });
-                subscriptions.push(connectSub);
-
-                const disconnectSub = MqttClient.addListener("onMqttDisconnected", () => {
-                    console.debug("MQTT Client disconnected.");
-                    setConnected(false);
-                });
-                subscriptions.push(disconnectSub);
-
-                const errorSub = MqttClient.addListener("onMqttError", (err: unknown) => {
-                    const errMsg = typeof err === 'object' && err !== null ? (err as any).error || (err as any).message : String(err);
-                    if (typeof errMsg === 'string' && errMsg.includes('BAD_USER_NAME_OR_PASSWORD')) {
-                        console.debug("MQTT Authentication pending/skipped.");
-                        return;
-                    }
-                    console.error("MQTT Error:", err);
-                });
-                subscriptions.push(errorSub);
-
-                // 3. Connect
                 const session = useSession.getState();
                 const preKey = session.preKey;
                 if (!preKey || preKey.length === 0) {
                     console.error("Missing preKey, cannot connect to MQTT.");
+                    isConnecting = false;
                     return;
                 }
+
+                // Ephemeral signature generation: epoch seconds prevent "old/future timestamp" errors on reconnect
                 const epochSeconds = Math.floor(Date.now() / 1000).toString();
                 const payloadStr = `${userId}${epochSeconds}`;
                 const payload = toBytes(payloadStr);
                 const { signature, vrf } = await LibsignalDezireModule.vxeddsaSign(preKey, payload);
                 const password = `${toBase64(signature)}${toBase64(vrf)}${epochSeconds}`;
-                
+
                 const clientId = deviceId;
                 await MqttClient.connect(
                     `${process.env.EXPO_PUBLIC_MQTT_URL}`,
@@ -232,30 +201,117 @@ const useMqtt = (topic: string) => {
                     {
                         clientId,
                         cleanSession: false,
-                        autoReconnect: true,
-                        reconnectDelay: 5000,
+                        autoReconnect: false, // Reconnection handled in JS so timestamps/signatures remain fresh
                     }
                 );
-                setClient(MqttClient);
-
+                if (isMounted) {
+                    setClient(MqttClient);
+                }
             } catch (error) {
                 const errMsg = typeof error === 'object' && error !== null ? (error as any).message || String(error) : String(error);
                 if (typeof errMsg === 'string' && errMsg.includes('BAD_USER_NAME_OR_PASSWORD')) {
                     console.debug("MQTT Connection Auth pending/skipped.");
-                    return;
+                } else {
+                    console.error("MQTT Connection Error:", error);
+                    if (isInitial) {
+                        Alert.alert(
+                            "Error",
+                            "Couldn't connect to the messaging server.",
+                            [{ text: "OK", style: 'cancel' }]
+                        );
+                    }
                 }
-                console.error("MQTT Connection Error:", error);
-                Alert.alert(
-                    "Error",
-                    "Couldn't connect to the messaging server.",
-                    [{ text: "OK", style: 'cancel' }]
-                );
+                if (isMounted) {
+                    scheduleReconnect();
+                }
+            } finally {
+                isConnecting = false;
             }
         };
 
-        initMqtt();
+        // Message reception: ciphertext saved to inbox prior to crypto processing
+        const messageSub = MqttClient.addListener(
+            "onMqttMessageReceived",
+            async (data: MqttMessage) => {
+                let inboxId: number | null = null;
+                try {
+                    const payloadStr = toString(data.payload);
+                    inboxId = await saveToInbox(data.topic, payloadStr);
+
+                    const session = useSession.getState();
+                    await processIncomingMessage(session, data.topic, payloadStr);
+                    await markInboxProcessed(inboxId);
+                } catch (e) {
+                    if (e instanceof BlockedContactError) {
+                        console.debug('[MQTT] Dropping and deleting message from blocked sender');
+                        if (inboxId !== null) {
+                            await deleteFromInbox(inboxId).catch(() => {});
+                        }
+                        return;
+                    }
+                    console.error("Failed to process MQTT message:", e);
+                }
+            }
+        );
+        subscriptions.push(messageSub);
+
+        const connectSub = MqttClient.addListener("onMqttConnected", async () => {
+            console.debug(`Connected to MQTT broker for topic: ${topic}`);
+            clearReconnectTimer();
+            reconnectAttempts = 0;
+            setConnected(true);
+
+            const topicPath = `/deezchatz/${userId}/${deviceId}/#`;
+            try {
+                await MqttClient.subscribe(topicPath, 1);
+                console.debug(`Subscribed to ${topicPath}`);
+            } catch (e) {
+                console.error(`Failed to subscribe to ${topicPath}:`, e);
+            }
+
+            await processOutboxRetries();
+        });
+        subscriptions.push(connectSub);
+
+        const disconnectSub = MqttClient.addListener("onMqttDisconnected", () => {
+            console.debug("MQTT Client disconnected.");
+            setConnected(false);
+            if (isMounted) {
+                scheduleReconnect();
+            }
+        });
+        subscriptions.push(disconnectSub);
+
+        const errorSub = MqttClient.addListener("onMqttError", (err: unknown) => {
+            const errMsg = typeof err === 'object' && err !== null ? (err as any).error || (err as any).message : String(err);
+            if (typeof errMsg === 'string' && errMsg.includes('BAD_USER_NAME_OR_PASSWORD')) {
+                console.debug("MQTT Authentication pending/skipped.");
+                return;
+            }
+            console.error("MQTT Error:", err);
+        });
+        subscriptions.push(errorSub);
+
+        // Resume on app foreground: immediately attempt reconnect if connection was dropped in background
+        const handleAppStateChange = (nextState: AppStateStatus) => {
+            if (nextState === 'active' && isMounted) {
+                const isConnected = useMqttStore.getState().isConnected;
+                if (!isConnected) {
+                    console.debug("[MQTT] App became active and MQTT disconnected — attempting immediate reconnect");
+                    clearReconnectTimer();
+                    reconnectAttempts = 0;
+                    connectMqtt(false);
+                }
+            }
+        };
+        const appStateSub = AppState.addEventListener('change', handleAppStateChange);
+        subscriptions.push({ remove: () => appStateSub.remove() });
+
+        connectMqtt(true);
 
         return () => {
+            isMounted = false;
+            clearReconnectTimer();
             subscriptions.forEach(sub => sub.remove());
             MqttClient.disconnect();
             setConnected(false);
