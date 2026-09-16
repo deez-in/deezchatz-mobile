@@ -140,6 +140,7 @@ const useMqtt = (topic: string) => {
 
         let isMounted = true;
         let isConnecting = false;
+        let isBackgrounded = AppState.currentState === 'background';
         let reconnectAttempts = 0;
         let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
         let subscriptions: { remove: () => void }[] = [];
@@ -152,7 +153,7 @@ const useMqtt = (topic: string) => {
         };
 
         const scheduleReconnect = () => {
-            if (!isMounted) return;
+            if (!isMounted || isBackgrounded) return;
             clearReconnectTimer();
 
             // Exponential backoff: base 2s, factor 1.5x, max 30s with ±20% jitter
@@ -166,14 +167,14 @@ const useMqtt = (topic: string) => {
             console.debug(`[MQTT] Scheduling reconnect attempt #${reconnectAttempts} in ${delayMs}ms`);
 
             reconnectTimer = setTimeout(() => {
-                if (isMounted) {
+                if (isMounted && !isBackgrounded) {
                     connectMqtt(false);
                 }
             }, delayMs);
         };
 
         const connectMqtt = async (isInitial = false) => {
-            if (!isMounted || isConnecting) return;
+            if (!isMounted || isConnecting || isBackgrounded) return;
             if (useMqttStore.getState().isConnected) return;
 
             isConnecting = true;
@@ -204,8 +205,12 @@ const useMqtt = (topic: string) => {
                         autoReconnect: false, // Reconnection handled in JS so timestamps/signatures remain fresh
                     }
                 );
-                if (isMounted) {
+                if (isMounted && !isBackgrounded) {
                     setClient(MqttClient);
+                } else {
+                    MqttClient.disconnect();
+                    setConnected(false);
+                    setClient(undefined);
                 }
             } catch (error) {
                 const errMsg = typeof error === 'object' && error !== null ? (error as any).message || String(error) : String(error);
@@ -221,7 +226,7 @@ const useMqtt = (topic: string) => {
                         );
                     }
                 }
-                if (isMounted) {
+                if (isMounted && !isBackgrounded) {
                     scheduleReconnect();
                 }
             } finally {
@@ -276,7 +281,7 @@ const useMqtt = (topic: string) => {
         const disconnectSub = MqttClient.addListener("onMqttDisconnected", () => {
             console.debug("MQTT Client disconnected.");
             setConnected(false);
-            if (isMounted) {
+            if (isMounted && !isBackgrounded) {
                 scheduleReconnect();
             }
         });
@@ -292,9 +297,10 @@ const useMqtt = (topic: string) => {
         });
         subscriptions.push(errorSub);
 
-        // Resume on app foreground: immediately attempt reconnect if connection was dropped in background
+        // AppState lifecycle: gracefully disconnect on background, reconnect on active
         const handleAppStateChange = (nextState: AppStateStatus) => {
             if (nextState === 'active' && isMounted) {
+                isBackgrounded = false;
                 const isConnected = useMqttStore.getState().isConnected;
                 if (!isConnected) {
                     console.debug("[MQTT] App became active and MQTT disconnected — attempting immediate reconnect");
@@ -302,6 +308,13 @@ const useMqtt = (topic: string) => {
                     reconnectAttempts = 0;
                     connectMqtt(false);
                 }
+            } else if (nextState === 'background') {
+                console.debug("[MQTT] App went to background — gracefully disconnecting MQTT");
+                isBackgrounded = true;
+                clearReconnectTimer();
+                MqttClient.disconnect();
+                setConnected(false);
+                setClient(undefined);
             }
         };
         const appStateSub = AppState.addEventListener('change', handleAppStateChange);
@@ -311,6 +324,7 @@ const useMqtt = (topic: string) => {
 
         return () => {
             isMounted = false;
+            isBackgrounded = true;
             clearReconnectTimer();
             subscriptions.forEach(sub => sub.remove());
             MqttClient.disconnect();

@@ -1,3 +1,4 @@
+import { AppState } from 'react-native';
 import { renderHook, act } from '@testing-library/react-native';
 import MqttClient from 'expo-native-mqtt';
 import LibsignalDezireModule from 'expo-libsignal-dezire';
@@ -118,5 +119,54 @@ describe('useMqtt hook', () => {
         expect(MqttClient.disconnect).toHaveBeenCalled();
         expect(useMqttStore.getState().isConnected).toBe(false);
         expect(useMqttStore.getState().client).toBeUndefined();
+    });
+
+    it('gracefully disconnects on background and reconnects on active', async () => {
+        let appStateListener: ((state: string) => void) | undefined;
+        const addListenerSpy = jest.spyOn(AppState, 'addEventListener').mockImplementation((event: string, cb: any) => {
+            if (event === 'change') {
+                appStateListener = cb;
+            }
+            return { remove: jest.fn() } as any;
+        });
+
+        await act(async () => {
+            await renderHook(() => useMqtt('user-alice-123'));
+        });
+
+        // Simulate connection established
+        await act(async () => {
+            listeners['onMqttConnected']?.();
+        });
+        expect(useMqttStore.getState().isConnected).toBe(true);
+
+        // Transition to background
+        await act(async () => {
+            appStateListener?.('background');
+        });
+
+        expect(MqttClient.disconnect).toHaveBeenCalled();
+        expect(useMqttStore.getState().isConnected).toBe(false);
+        expect(useMqttStore.getState().client).toBeUndefined();
+
+        // Simulate onMqttDisconnected from native
+        await act(async () => {
+            listeners['onMqttDisconnected']?.();
+        });
+
+        // Advance timers by 10s — should NOT attempt reconnect in background
+        await act(async () => {
+            jest.advanceTimersByTime(10000);
+        });
+        expect(MqttClient.connect).toHaveBeenCalledTimes(1); // Still only initial connect
+
+        // Transition back to active
+        await act(async () => {
+            appStateListener?.('active');
+        });
+
+        expect(MqttClient.connect).toHaveBeenCalledTimes(2); // Reconnected!
+
+        addListenerSpy.mockRestore();
     });
 });
