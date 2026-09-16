@@ -60,74 +60,75 @@ export default function DeleteAccountSheet({
       width: Dimensions.get("window").width,
       paddingHorizontal: 20,
       backgroundColor: Platform.OS === "android" ? colors.surface : undefined,
-      paddingTop: 16,
-      paddingBottom: 28,
-      gap: 16,
+      paddingTop: 8,
+      paddingBottom: Platform.OS === "ios" ? 24 : 14,
+      gap: 12,
     },
     header: {
       flexDirection: "row" as const,
       alignItems: "center" as const,
-      gap: 14,
+      gap: 12,
     },
     iconContainer: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
       backgroundColor: colors.surfaceVariant,
       justifyContent: "center" as const,
       alignItems: "center" as const,
     },
     headerText: {
       flex: 1,
-      gap: 3,
+      gap: 2,
     },
     title: {
-      fontSize: 19,
+      fontSize: 18,
       fontWeight: "700" as const,
       color: colors.onSurface,
     },
     description: {
-      fontSize: 13,
+      fontSize: 12,
       color: colors.onSurfaceVariant,
-      lineHeight: 18,
+      lineHeight: 16,
     },
     warningCard: {
       backgroundColor: colors.surfaceVariant,
-      padding: 14,
-      borderRadius: 14,
-      borderLeftWidth: 4,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderRadius: 12,
+      borderLeftWidth: 3,
       borderLeftColor: colors.error,
-      gap: 6,
+      gap: 4,
     },
     warningTitle: {
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: "700" as const,
       color: colors.error,
       textTransform: "uppercase" as const,
       letterSpacing: 0.5,
     },
     warningBody: {
-      fontSize: 13,
+      fontSize: 12,
       color: colors.onSurfaceVariant,
-      lineHeight: 18,
+      lineHeight: 16,
     },
     checkboxRow: {
       flexDirection: "row" as const,
-      alignItems: "flex-start" as const,
-      gap: 12,
-      paddingVertical: 4,
+      alignItems: "center" as const,
+      gap: 10,
+      paddingVertical: 2,
     },
     checkboxText: {
       flex: 1,
-      fontSize: 14,
-      lineHeight: 20,
+      fontSize: 13,
+      lineHeight: 18,
       color: colors.onSurface,
     },
     buttonRow: {
       flexDirection: "row" as const,
       gap: 12,
       width: "100%" as const,
-      marginTop: 4,
+      marginTop: 2,
     },
     cancelButton: {
       width: (Dimensions.get("window").width - 52) / 2,
@@ -158,7 +159,7 @@ export default function DeleteAccountSheet({
             <View style={styles.iconContainer}>
               <MaterialCommunityIcons
                 name="alert-octagon-outline"
-                size={26}
+                size={22}
                 color={colors.error as string}
               />
             </View>
