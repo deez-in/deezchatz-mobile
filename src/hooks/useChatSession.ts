@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert } from "react-native";
+import { Alert, AppState, AppStateStatus } from "react-native";
 
 import useSession from "@/src/store/useSession";
 import { Message } from "@/src/models/db";
@@ -124,9 +124,21 @@ export function useChatSession({
       }
     });
 
+    // Re-fetch on foreground resume to catch messages written by the inbox retry
+    // after the initial getMessages call (e.g. when tapping a push notification).
+    const handleAppStateChange = (nextState: AppStateStatus) => {
+      if (nextState === "active" && isMounted) {
+        getMessages(resolvedUUID)
+          .then((msgs) => { if (isMounted) setChatMessages(msgs); })
+          .catch((e) => console.error("Failed to refresh messages on foreground:", e));
+      }
+    };
+    const appStateSub = AppState.addEventListener("change", handleAppStateChange);
+
     return () => {
       isMounted = false;
       unsubscribe();
+      appStateSub.remove();
       if (resolvedUUID) {
         closeChatDatabase(resolvedUUID).catch(() => {});
       }
