@@ -5,6 +5,26 @@ All notable changes to the **DeezChatz Mobile** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.6] - 2026-09-17
+
+### Added
+- Moved disconnect/reconnect logic to the app's JS layer.
+- Gracefully closing MQTT connection when in background.
+
+### Changed
+- Moved permission request into the onboarding flow.
+
+### Fixed
+- Fixed race condition where a screen loaded before background notification task can complete.
+- Fixed `deleteAccount` bottom sheet to have all content under 50% height due to `@expo/ui` Android limitation.
+- Bumped Android `versionCode` to `14`.
+
+## [0.8.5] - 2026-09-15
+
+### Fixed
+- Fixed ProGuard issues and updated dependencies.
+- Bumped Android `versionCode` to `13`.
+
 ## [0.8.4] - 2026-09-12
 
 ### Fixed
