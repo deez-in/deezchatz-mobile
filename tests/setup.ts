@@ -135,14 +135,23 @@ jest.mock('expo-router', () => ({
 // Mock libsignal-dezire (the Rust FFI module)
 jest.mock('expo-libsignal-dezire', () => ({
   genKeyPair: jest.fn().mockResolvedValue({
-    pubKey: new Uint8Array(32),
+    secret: new Uint8Array(32),
+    public: new Uint8Array(33),
+    pubKey: new Uint8Array(33),
     privKey: new Uint8Array(32),
   }),
-  vxeddsaSign: jest.fn().mockResolvedValue(new Uint8Array(64)),
-  vxeddsaVerify: jest.fn().mockResolvedValue(true),
+  genPubKey: jest.fn().mockResolvedValue(new Uint8Array(33)),
+  encodePublicKey: jest.fn().mockResolvedValue(new Uint8Array(33)),
+  genSecret: jest.fn().mockResolvedValue(new Uint8Array(32)),
+  vxeddsaSign: jest.fn().mockResolvedValue({
+    signature: new Uint8Array(96),
+    vrf: new Uint8Array(32),
+  }),
+  vxeddsaVerify: jest.fn().mockResolvedValue(new Uint8Array(32)),
   x3dhInitiator: jest.fn().mockResolvedValue({
     sharedSecret: new Uint8Array(32),
-    ephemeralPubKey: new Uint8Array(32),
+    ephemeralPublic: new Uint8Array(33),
+    ephemeralPubKey: new Uint8Array(33),
   }),
   x3dhResponder: jest.fn().mockResolvedValue(new Uint8Array(32)),
   ratchetInitSender: jest.fn().mockResolvedValue('mock-session-id-123'),
