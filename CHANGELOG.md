@@ -5,6 +5,16 @@ All notable changes to the **DeezChatz Mobile** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.7] - 2026-09-21
+
+### Changed
+- Updated Expo SDK packages (`expo`, `@expo/ui`, `expo-build-properties`, `expo-constants`, `expo-contacts`, `expo-image-manipulator`, `expo-image-picker`, `expo-notifications`, `expo-router`, `expo-task-manager`).
+- Upgraded `expo-libsignal-dezire` to `^0.7.1` with updated crypto mock signatures in test suite.
+
+### Fixed
+- Updated Terms of Service URL in the registration screen to `/tos`.
+- Bumped Android `versionCode` to `15`.
+
 ## [0.8.6] - 2026-09-17
 
 ### Added
