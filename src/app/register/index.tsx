@@ -220,7 +220,7 @@ export default function Register() {
               style={dynamicStyles.tosLink}
               onPress={(e) => {
                 e?.stopPropagation?.();
-                WebBrowser.openBrowserAsync("https://chatz.deez.in/terms");
+                WebBrowser.openBrowserAsync("https://chatz.deez.in/tos");
               }}
             >
               Terms of Service
