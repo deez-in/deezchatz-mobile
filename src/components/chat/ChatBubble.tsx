@@ -2,11 +2,12 @@ import React from 'react';
 import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StyledText } from "@/src/components/ui";
-import { useThemedStyles } from '@/src/hooks/useTheme';
+import { useThemedStyles, useTheme } from '@/src/hooks/useTheme';
 import { Message } from '@/src/models/db';
 import { formatMessageTime } from '@/src/utils/helpers';
 import VoiceMessageBubble from './VoiceMessageBubble';
 import ImageMessageBubble from './ImageMessageBubble';
+import { EnrichedMarkdownText } from 'react-native-enriched-markdown';
 
 export type ChatBubbleProps = {
     message: Message;
@@ -14,6 +15,7 @@ export type ChatBubbleProps = {
 
 
 export default function ChatBubble({ message }: ChatBubbleProps) {
+    const { colors } = useTheme();
     const themedStyles = useThemedStyles((colors) => ({
         sentBubble: {
             alignSelf: 'flex-end',
@@ -136,9 +138,15 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
 
     return (
         <View style={isMe ? themedStyles.sentBubble : themedStyles.receivedBubble}>
-            <StyledText style={isMe ? themedStyles.messageTextSent : themedStyles.messageTextReceived}>
-                {message.content}
-            </StyledText>
+            <EnrichedMarkdownText 
+                markdown={message.content}
+                markdownStyle={{
+                    paragraph: isMe ? { ...themedStyles.messageTextSent, color: themedStyles.messageTextSent.color as string } : { ...themedStyles.messageTextReceived, color: themedStyles.messageTextReceived.color as string },
+                    link: { color: isMe ? 'white' : colors.primary as string },
+                    code: { backgroundColor: isMe ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.05)', color: isMe ? 'white' : colors.onBackground as string },
+                    codeBlock: { backgroundColor: isMe ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.05)', color: isMe ? 'white' : colors.onBackground as string, borderRadius: 6, padding: 8 }
+                }}
+            />
             <View style={themedStyles.timestampRow}>
                 <StyledText style={isMe ? themedStyles.timestampSent : themedStyles.timestampReceived}>
                     {formatMessageTime(displayTimestamp)}
