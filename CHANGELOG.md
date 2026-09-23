@@ -5,6 +5,15 @@ All notable changes to the **DeezChatz Mobile** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.8] - 2026-09-23
+
+### Added
+- Markdown formatting support in chat messages (`react-native-enriched-markdown`).
+
+### Fixed
+- Improved markdown style contrast, readability, and link handling in chat bubbles.
+- Bumped Android `versionCode` to `16`.
+
 ## [0.8.7] - 2026-09-21
 
 ### Changed
