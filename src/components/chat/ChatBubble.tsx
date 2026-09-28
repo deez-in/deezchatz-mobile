@@ -43,7 +43,7 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
     const themedStyles = useThemedStyles((colors) => ({
         sentBubble: {
             alignSelf: 'flex-end',
-            backgroundColor: colors.primary,
+            backgroundColor: colors.primaryContainer,
             borderRadius: 20,
             borderCurve: 'continuous',
             borderBottomRightRadius: 4,
@@ -60,7 +60,7 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
         receivedBubble: {
             alignSelf: 'flex-start',
             position: 'relative',
-            backgroundColor: colors.surface,
+            backgroundColor: colors.surfaceVariant,
             borderRadius: 20,
             borderCurve: 'continuous',
             borderBottomLeftRadius: 4,
@@ -75,13 +75,13 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
             gap: 6,
         },
         messageTextSent: {
-            color: colors.onPrimary,
+            color: colors.onPrimaryContainer,
             fontSize: 14,
             lineHeight: 20,
             flexShrink: 1,
         },
         messageTextReceived: {
-            color: colors.onBackground,
+            color: colors.onSurfaceVariant,
             fontSize: 14,
             lineHeight: 20,
             flexShrink: 1,
@@ -103,7 +103,7 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
             marginRight: -2,
         },
         timestampSent: {
-            color: colors.onPrimary,
+            color: colors.onPrimaryContainer,
             opacity: 0.8,
             fontSize: 9,
         },
@@ -140,39 +140,12 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
     const isMe = message.sender_id === 'me' || message.sender_id === 'self';
     const isSystem = message.type === 'system' || message.sender_id === 'system';
 
-    // System messages render as centered, muted info text (not a chat bubble)
-    if (isSystem) {
-        return (
-            <View style={themedStyles.systemContainer}>
-                <StyledText style={themedStyles.systemText}>
-                    {message.content}
-                </StyledText>
-                <StyledText style={themedStyles.systemTimestamp}>
-                    {formatMessageTime(message.created_at)}
-                </StyledText>
-            </View>
-        );
-    }
-
-    if (message.type === 'voice') {
-        return <VoiceMessageBubble message={message} />;
-    }
-
-    if (message.type === 'image') {
-        return <ImageMessageBubble message={message} />;
-    }
-
-    const statusIcon = isMe ? getStatusIcon(message.status, themedStyles) : null;
-    const displayTimestamp = isMe
-        ? message.created_at
-        : (message.received_at ?? message.created_at);
-
     const sentTextColor = themedStyles.messageTextSent.color as string;
     const receivedTextColor = themedStyles.messageTextReceived.color as string;
     const textColor = isMe ? sentTextColor : receivedTextColor;
     const primaryColor = colors.primary as string;
-    const outlineColor = colors.outline as string;
     const onSurfaceVariantColor = colors.onSurfaceVariant as string;
+    const onPrimaryContainerColor = colors.onPrimaryContainer as string;
 
     // Explicit rgba for code/blockquote backgrounds — avoids platform-color opacity
     // issues where surfaceVariant resolves to an opaque system color on Android.
@@ -199,7 +172,7 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
         h5: { color: textColor, fontSize: 14, lineHeight: 20, fontWeight: '600' as const, marginTop: 4, marginBottom: 2 },
         h6: { color: textColor, fontSize: 13, lineHeight: 18, fontWeight: '600' as const, marginTop: 4, marginBottom: 2 },
         link: {
-            color: isMe ? 'rgba(255,255,255,0.9)' : primaryColor,
+            color: isMe ? onPrimaryContainerColor : primaryColor,
             underline: true,
         },
         strong: { color: textColor },
@@ -212,12 +185,12 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
             bulletSize: 5,
             marginTop: 0,
             marginBottom: 6,
-            bulletColor: isMe ? 'rgba(255,255,255,0.7)' : onSurfaceVariantColor,
-            markerColor: isMe ? 'rgba(255,255,255,0.7)' : onSurfaceVariantColor,
+            bulletColor: isMe ? onPrimaryContainerColor : onSurfaceVariantColor,
+            markerColor: isMe ? onPrimaryContainerColor : onSurfaceVariantColor,
         },
         code: {
             fontSize: 13,
-            color: isMe ? '#FFD6A5' : primaryColor,
+            color: isMe ? onPrimaryContainerColor : primaryColor,
             backgroundColor: codeBg,
             borderColor: 'transparent',
         },
@@ -263,10 +236,39 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
             marginBottom: 6,
         },
     }), [
-        textColor, receivedTextColor, primaryColor, onSurfaceVariantColor,
+        textColor, receivedTextColor, primaryColor, onSurfaceVariantColor, onPrimaryContainerColor,
         isMe, codeBg, codeBlockBg, blockquoteBg,
         tableHeaderBg, tableOddRowBg, tableBorderColor, dividerColor,
     ]);
+
+    // System messages render as centered, muted info text (not a chat bubble)
+    if (isSystem) {
+        return (
+            <View style={themedStyles.systemContainer}>
+                <StyledText style={themedStyles.systemText}>
+                    {message.content}
+                </StyledText>
+                <StyledText style={themedStyles.systemTimestamp}>
+                    {formatMessageTime(message.created_at)}
+                </StyledText>
+            </View>
+        );
+    }
+
+    if (message.type === 'voice') {
+        return <VoiceMessageBubble message={message} />;
+    }
+
+    if (message.type === 'image') {
+        return <ImageMessageBubble message={message} />;
+    }
+
+    const statusIcon = isMe
+        ? getStatusIcon(message.status, themedStyles, onPrimaryContainerColor)
+        : null;
+    const displayTimestamp = isMe
+        ? message.created_at
+        : (message.received_at ?? message.created_at);
 
     return (
         <View style={isMe ? themedStyles.sentBubble : themedStyles.receivedBubble}>
@@ -292,15 +294,17 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
 
 function getStatusIcon(
     status: Message['status'],
-    styles: { timestampSent: object; failedIndicator: object }
+    styles: { timestampSent: object; failedIndicator: object },
+    iconColor?: string
 ): React.ReactNode {
+    const defaultColor = iconColor ?? "rgba(255,255,255,0.6)";
     switch (status) {
         case 'pending':
             return (
                 <Ionicons
                     name="time-outline"
                     size={10}
-                    color="rgba(255,255,255,0.6)"
+                    color={defaultColor}
                     style={styles.timestampSent}
                 />
             );
@@ -318,7 +322,7 @@ function getStatusIcon(
                 <Ionicons
                     name="checkmark"
                     size={11}
-                    color="rgba(255,255,255,0.6)"
+                    color={defaultColor}
                     style={styles.timestampSent}
                 />
             );
@@ -327,7 +331,7 @@ function getStatusIcon(
                 <Ionicons
                     name="checkmark-done"
                     size={11}
-                    color="rgba(255,255,255,0.6)"
+                    color={defaultColor}
                     style={styles.timestampSent}
                 />
             );
