@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   View,
   StyleSheet,
@@ -8,9 +8,12 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
 import { router } from "expo-router";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import * as WebBrowser from "expo-web-browser";
+import Constants from "expo-constants";
 import { setStringAsync } from "expo-clipboard";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useTheme, useThemedStyles } from "@/src/hooks/useTheme";
 import useSession from "@/src/store/useSession";
@@ -25,6 +28,13 @@ export default function ProfileScreen() {
   const [showDeleteSheet, setShowDeleteSheet] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [copiedUserId, setCopiedUserId] = useState(false);
+
+  const appVersion = Constants.expoConfig?.version;
+  const versionCode = Constants.expoConfig?.android?.versionCode;
+  const versionString = useMemo(() => {
+    if (!appVersion) return "";
+    return versionCode ? `DeezChatz v${appVersion} (${versionCode})` : `DeezChatz v${appVersion}`;
+  }, [appVersion, versionCode]);
 
   const handleCopyUserId = useCallback(async () => {
     if (session.userId) {
@@ -207,6 +217,30 @@ export default function ProfileScreen() {
       lineHeight: 16,
       paddingHorizontal: 16,
     },
+    footerSection: {
+      alignItems: "center" as const,
+      gap: 10,
+      marginTop: 8,
+      paddingBottom: 16,
+    },
+    legalLinksRow: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: 12,
+    },
+    legalLinkText: {
+      fontSize: 13,
+      fontWeight: "500" as const,
+      color: colors.primary,
+    },
+    legalDivider: {
+      fontSize: 13,
+      color: colors.outline,
+    },
+    versionText: {
+      fontSize: 12,
+      color: colors.outline,
+    },
   }));
 
   const formattedPhone = session.phone?.number
@@ -335,6 +369,36 @@ export default function ProfileScreen() {
           <StyledText style={styles.deleteDisclaimer}>
             Deleting your profile will remove your account and all associated encrypted chats permanently.
           </StyledText>
+        </View>
+
+        {/* Legal & App Version */}
+        <View style={styles.footerSection}>
+          <View style={styles.legalLinksRow}>
+            <Pressable
+              onPress={() => {
+                WebBrowser.openBrowserAsync("https://chatz.deez.in/tos");
+              }}
+              hitSlop={8}
+              accessibilityRole="link"
+              accessibilityLabel="Terms of Service"
+            >
+              <StyledText style={styles.legalLinkText}>Terms of Service</StyledText>
+            </Pressable>
+            <StyledText style={styles.legalDivider}>•</StyledText>
+            <Pressable
+              onPress={() => {
+                WebBrowser.openBrowserAsync("https://chatz.deez.in/privacy");
+              }}
+              hitSlop={8}
+              accessibilityRole="link"
+              accessibilityLabel="Privacy Policy"
+            >
+              <StyledText style={styles.legalLinkText}>Privacy Policy</StyledText>
+            </Pressable>
+          </View>
+          {versionString ? (
+            <StyledText style={styles.versionText}>{versionString}</StyledText>
+          ) : null}
         </View>
       </ScrollView>
 

@@ -1,5 +1,6 @@
 # Deez Chatz 💬
 
+[![Google Play](https://img.shields.io/badge/Google_Play-DeezChatz-34A853?logo=google-play)](https://play.google.com/store/apps/details?id=in.deez.chatz)
 [![Expo SDK](https://img.shields.io/badge/Expo_SDK-57-blue?logo=expo)](https://expo.dev)
 [![React Native](https://img.shields.io/badge/React_Native-0.86-61DAFB?logo=react)](https://reactnative.dev)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-orange.svg)](https://www.gnu.org/licenses/agpl-3.0)
@@ -7,6 +8,8 @@
 [![Signal Protocol](https://img.shields.io/badge/Encryption-Signal_Protocol-green?logo=signal)](https://signal.org/docs/)
 
 **Deez Chatz** is a zero-trust, end-to-end encrypted messaging app built for fast, paranoid-level private communication. Ain't nobody reading Deez Chatz — not your ISP, not Big Tech, and definitely not our servers. Your messages belong to nobody but you and yours truly. Here at 'Deez', we don't hoard your data: storing useless logs costs real money and burns trees, and frankly... ain't nobody trying to pay servers to host your 3 AM chatzzz anyway 💬🔥
+
+Now live on Android! Download on the **[Google Play Store](https://play.google.com/store/apps/details?id=in.deez.chatz)**.
 
 Built with ❤️ in **India**, for the **world**.
 
@@ -45,15 +48,17 @@ graph TD
 
 ### Current
 - [x] One-to-one text messages with offline queueing and background sync
+- [x] End-to-end encrypted image messaging with compression and interactive viewer
+- [x] Voice notes (Opus audio messages)
 - [x] End-to-end encryption via Signal Protocol (X3DH + Double Ratchet)
 - [x] Encrypted local storage (SQLCipher via `expo-sqlite`)
+- [x] Markdown message formatting
 - [x] Contact syncing & bundle synchronization
 - [x] Key change notifications & system message rendering
 - [x] Dark & light theme support
 - [x] Automated Jest unit testing suite
 
 ### Roadmap
-- [ ] Voice notes
 - [ ] File sharing
 - [ ] Voice & video calls (WebRTC)
 - [ ] Group chats (many-to-many messaging)
@@ -181,7 +186,7 @@ The repository includes GitHub Actions workflows (`.github/workflows/build-andro
 
 - **Triggers**: On publishing a new GitHub release or via manual `workflow_dispatch`.
 - **EAS Local Matrix Build**: Uses EAS CLI locally in GitHub Actions with a matrix strategy to build standalone Android APK and AAB binaries without requiring Expo cloud credits.
-- **Play Store Deployment**: Automatically uploads the generated `.aab` to Google Play Store Internal Testing.
+- **Play Store Deployment**: Automatically uploads the generated `.aab` to Google Play Store Pre-Release closed testing track for verification prior to production rollout.
 - **Artifacts & Releases**: Automatically attaches generated `.apk` and `.aab` binaries to GitHub Releases and uploads workflow build artifacts.
 
 ---

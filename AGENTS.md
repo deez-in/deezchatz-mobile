@@ -4,7 +4,7 @@ This document provides guidance for AI coding agents working in this codebase.
 
 ## Ecosystem Context
 
-> **This is the mobile app that users install.** It sits at the top of the dependency stack and consumes all other Deez Chatz projects.
+> **This is the mobile app that users install** (live on Google Play Store: `in.deez.chatz`). It sits at the top of the dependency stack and consumes all other Deez Chatz projects.
 
 ```
 ⭐ deezchatz-mobile (this repo)
@@ -304,5 +304,5 @@ Automated unit tests are written with **Jest** and **React Native Testing Librar
 
 Automated Android builds and deployment are handled via GitHub Actions in `.github/workflows/build-android.yml`.
 - Uses a matrix build strategy to produce both signed production APK and AAB binaries locally via EAS CLI.
-- Automatically deploys the AAB to the Google Play Store internal testing track.
+- Automatically deploys the AAB to the Google Play Store closed testing track (`pre-release`) for verification prior to production promotion.
 - Attaches both `deezchatz-*.apk` and `deezchatz-*.aab` artifacts to GitHub Releases on publish.
