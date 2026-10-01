@@ -15,6 +15,7 @@ scripts/send-test-push.js
 credentials/
 credential*
 #build files
+.build/
 build/
 build-*
 

@@ -28,7 +28,7 @@ export default function VoiceMessageBubble({ message }: VoiceMessageBubbleProps)
   const themedStyles = useThemedStyles((themeColors) => ({
     sentBubble: {
       alignSelf: "flex-end",
-      backgroundColor: themeColors.primary,
+      backgroundColor: themeColors.primaryContainer,
       borderRadius: 20,
       borderCurve: "continuous",
       borderBottomRightRadius: 4,
@@ -40,7 +40,7 @@ export default function VoiceMessageBubble({ message }: VoiceMessageBubbleProps)
     },
     receivedBubble: {
       alignSelf: "flex-start",
-      backgroundColor: themeColors.surface,
+      backgroundColor: themeColors.surfaceVariant,
       borderRadius: 20,
       borderCurve: "continuous",
       borderBottomLeftRadius: 4,
@@ -59,7 +59,7 @@ export default function VoiceMessageBubble({ message }: VoiceMessageBubbleProps)
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: themeColors.onPrimary,
+      backgroundColor: themeColors.onPrimaryContainer,
       alignItems: "center",
       justifyContent: "center",
       shadowColor: "#000",
@@ -95,12 +95,12 @@ export default function VoiceMessageBubble({ message }: VoiceMessageBubbleProps)
     waveBarActiveSent: {
       width: 3,
       borderRadius: 2,
-      backgroundColor: colors.onPrimary,
+      backgroundColor: colors.onPrimaryContainer,
     },
     waveBarInactiveSent: {
       width: 3,
       borderRadius: 2,
-      backgroundColor: "rgba(255, 255, 255, 0.4)",
+      backgroundColor: "rgba(0, 0, 0, 0.25)",
     },
     waveBarActiveReceived: {
       width: 3,
@@ -119,7 +119,7 @@ export default function VoiceMessageBubble({ message }: VoiceMessageBubbleProps)
       marginTop: 2,
     },
     durationTextSent: {
-      color: colors.onPrimary,
+      color: colors.onPrimaryContainer,
       fontSize: 12,
       fontVariant: ["tabular-nums"],
       opacity: 0.9,
@@ -135,7 +135,7 @@ export default function VoiceMessageBubble({ message }: VoiceMessageBubbleProps)
       gap: 3,
     },
     timestampSent: {
-      color: colors.onPrimary,
+      color: colors.onPrimaryContainer,
       opacity: 0.8,
       fontSize: 10,
     },
@@ -171,7 +171,9 @@ export default function VoiceMessageBubble({ message }: VoiceMessageBubbleProps)
     return "00:00";
   }, [isPlaying, positionMs, durationMs]);
 
-  const statusIcon = isMe ? getStatusIcon(message.status, themedStyles) : null;
+  const statusIcon = isMe
+    ? getStatusIcon(message.status, themedStyles, colors.onPrimaryContainer as string)
+    : null;
   const displayTimestamp = isMe
     ? message.created_at
     : (message.received_at ?? message.created_at);
@@ -192,7 +194,7 @@ export default function VoiceMessageBubble({ message }: VoiceMessageBubbleProps)
           <Ionicons
             name={isPlaying ? "pause" : "play"}
             size={20}
-            color={isMe ? (colors.primary as string) : (colors.onPrimary as string)}
+            color={isMe ? (colors.primaryContainer as string) : (colors.onPrimary as string)}
             style={{ marginLeft: isPlaying ? 0 : 2 }}
           />
         </Pressable>
@@ -247,15 +249,17 @@ export default function VoiceMessageBubble({ message }: VoiceMessageBubbleProps)
 
 function getStatusIcon(
   status: Message["status"],
-  styles: { timestampSent: object; failedIndicator: object }
+  styles: { timestampSent: object; failedIndicator: object },
+  iconColor?: string
 ): React.ReactNode {
+  const defaultColor = iconColor ?? "rgba(255,255,255,0.6)";
   switch (status) {
     case "pending":
       return (
         <Ionicons
           name="time-outline"
           size={12}
-          color="rgba(255,255,255,0.6)"
+          color={defaultColor}
           style={styles.timestampSent}
         />
       );
@@ -273,7 +277,7 @@ function getStatusIcon(
         <Ionicons
           name="checkmark"
           size={13}
-          color="rgba(255,255,255,0.6)"
+          color={defaultColor}
           style={styles.timestampSent}
         />
       );
@@ -282,7 +286,7 @@ function getStatusIcon(
         <Ionicons
           name="checkmark-done"
           size={13}
-          color="rgba(255,255,255,0.6)"
+          color={defaultColor}
           style={styles.timestampSent}
         />
       );

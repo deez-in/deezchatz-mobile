@@ -5,7 +5,7 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 
 import { StyledText } from "@/src/components/ui";
-import { useThemedStyles } from "@/src/hooks/useTheme";
+import { useThemedStyles, useTheme } from "@/src/hooks/useTheme";
 import { Message } from "@/src/models/db";
 import { formatMessageTime } from "@/src/utils/helpers";
 
@@ -21,11 +21,12 @@ export default function ImageMessageBubble({
   onPress,
 }: ImageMessageBubbleProps) {
   const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const { colors } = useTheme();
 
   const themedStyles = useThemedStyles((colors) => ({
     sentBubble: {
       alignSelf: "flex-end",
-      backgroundColor: colors.primary,
+      backgroundColor: colors.primaryContainer,
       borderRadius: 20,
       borderCurve: "continuous",
       borderBottomRightRadius: 4,
@@ -35,7 +36,7 @@ export default function ImageMessageBubble({
     },
     receivedBubble: {
       alignSelf: "flex-start",
-      backgroundColor: colors.surface,
+      backgroundColor: colors.surfaceVariant,
       borderRadius: 20,
       borderCurve: "continuous",
       borderBottomLeftRadius: 4,
@@ -49,12 +50,12 @@ export default function ImageMessageBubble({
       paddingBottom: 2,
     },
     captionSent: {
-      color: colors.onPrimary,
+      color: colors.onPrimaryContainer,
       fontSize: 15,
       lineHeight: 21,
     },
     captionReceived: {
-      color: colors.onBackground,
+      color: colors.onSurfaceVariant,
       fontSize: 15,
       lineHeight: 21,
     },
@@ -68,7 +69,7 @@ export default function ImageMessageBubble({
       paddingTop: 2,
     },
     timestampSent: {
-      color: colors.onPrimary,
+      color: colors.onPrimaryContainer,
       opacity: 0.8,
       fontSize: 10,
     },
@@ -110,7 +111,10 @@ export default function ImageMessageBubble({
   };
 
   const statusIcon = isMe
-    ? getStatusIcon(message.status, hasCaption ? "rgba(255,255,255,0.7)" : "#FFFFFF")
+    ? getStatusIcon(
+        message.status,
+        hasCaption ? (colors.onPrimaryContainer as string) : "#FFFFFF"
+      )
     : null;
 
   return (

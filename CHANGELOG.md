@@ -5,6 +5,25 @@ All notable changes to the **DeezChatz Mobile** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.81] - 2026-09-30
+
+### Changed
+- Updated Expo SDK packages (`expo`, `@expo/ui`, `expo-build-properties`, `expo-constants`, `expo-glass-effect`, `expo-image-manipulator`, `expo-image-picker`, `expo-linking`, `expo-notifications`, `expo-router`, `expo-task-manager`).
+
+### Fixed
+- Fixed contrast issues in chat message bubbles across text, image, and voice messages using semantic container colors (`primaryContainer`, `surfaceVariant`).
+- Adjusted status icons and markdown element colors to ensure readability against dynamic theme backgrounds.
+- Bumped Android `versionCode` to `17`.
+
+## [0.8.8] - 2026-09-23
+
+### Added
+- Markdown formatting support in chat messages (`react-native-enriched-markdown`).
+
+### Fixed
+- Improved markdown style contrast, readability, and link handling in chat bubbles.
+- Bumped Android `versionCode` to `16`.
+
 ## [0.8.7] - 2026-09-21
 
 ### Changed
