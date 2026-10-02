@@ -5,6 +5,13 @@ All notable changes to the **DeezChatz Mobile** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.82] - 2026-10-02
+
+### Fixed
+- Fixed an issue where Google Play blocked the app from being installed on Android Emulators due to implicit hardware requirements.
+- Made `android.hardware.wifi` and `android.hardware.screen.portrait` optional features in Android manifest.
+- Bumped Android `versionCode` to `18`.
+
 ## [0.8.81] - 2026-09-30
 
 ### Changed

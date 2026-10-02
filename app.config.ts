@@ -14,6 +14,8 @@ const withOptionalHardwareFeatures: ConfigPlugin = (config) => {
       "android.hardware.camera.autofocus",
       "android.hardware.camera.front",
       "android.hardware.microphone",
+      "android.hardware.wifi",
+      "android.hardware.screen.portrait",
     ];
 
     for (const featureName of optionalFeatures) {
@@ -41,7 +43,7 @@ const withOptionalHardwareFeatures: ConfigPlugin = (config) => {
 const config: ExpoConfig = {
   name: "DeezChatz",
   slug: "deezchatz",
-  version: "0.8.81",
+  version: "0.8.82",
   orientation: "portrait",
   icon: "./src/assets/images/android-icon-foreground.png",
   scheme: "deezchatz",
@@ -64,7 +66,7 @@ const config: ExpoConfig = {
     },
     predictiveBackGestureEnabled: true,
     package: "in.deez.chatz",
-    versionCode: 17,
+    versionCode: 18,
     googleServicesFile: "./google-services.json",
     permissions: [
       "android.permission.READ_EXTERNAL_STORAGE",
