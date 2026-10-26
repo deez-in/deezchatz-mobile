@@ -1,5 +1,5 @@
 export interface DeleteAccountResponse {
-  status: string;
+  status: "success";
   message: string;
 }
 

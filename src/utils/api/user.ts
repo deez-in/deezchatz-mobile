@@ -3,6 +3,7 @@
  */
 
 import { apiRequest } from "@/src/clients/apiClient";
+import { REST_REQUEST_TIMEOUT_MS } from "@/src/config";
 import useSession from "@/src/store/useSession";
 import { Message } from "@/src/models/db";
 import {
@@ -71,15 +72,24 @@ export async function reportUser(
 /**
  * Sends authenticated request to delete the current user's profile and account.
  */
-export async function deleteAccount(): Promise<DeleteAccountResponse | void> {
-  try {
-    return await apiRequest<DeleteAccountResponse>("/users/me", {
-      method: "DELETE",
-      authenticated: true,
-    });
-  } catch (error) {
-    // If backend endpoint is not yet implemented (e.g. 404), log warning and proceed
-    console.warn("[deleteAccount] API delete request completed with warning/error:", error);
-    throw error;
+export async function deleteAccount(): Promise<DeleteAccountResponse> {
+  const response = await apiRequest<unknown>("/users/me", {
+    method: "DELETE",
+    authenticated: true,
+    expectedStatus: 200,
+    timeoutMs: REST_REQUEST_TIMEOUT_MS,
+  });
+
+  if (
+    typeof response !== "object" ||
+    response === null ||
+    !("status" in response) ||
+    response.status !== "success" ||
+    !("message" in response) ||
+    typeof response.message !== "string"
+  ) {
+    throw new Error("Server did not confirm account deletion");
   }
+
+  return { status: response.status, message: response.message };
 }

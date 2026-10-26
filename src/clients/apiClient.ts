@@ -7,6 +7,8 @@ export type RequestOptions = {
     method?: string;
     body?: object;
     authenticated?: boolean;
+    expectedStatus?: number;
+    timeoutMs?: number;
 }
 
 
@@ -33,7 +35,7 @@ export async function apiRequest<T = unknown>(
   path: string,
   options: RequestOptions = {}
 ): Promise<T> {
-  const { method = "GET", body, authenticated = false } = options;
+  const { method = "GET", body, authenticated = false, expectedStatus, timeoutMs } = options;
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -58,18 +60,26 @@ export async function apiRequest<T = unknown>(
     headers["X-Vrf"] = toBase64(vrf);
   }
 
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const controller = timeoutMs === undefined ? undefined : new AbortController();
+  const timeout = controller
+    ? setTimeout(() => controller.abort(), timeoutMs)
+    : undefined;
 
-  if (!res.ok) {
+  try {
+    const res = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller?.signal,
+    });
+
     const text = await res.text();
-    throw new ApiError(res.status, text, path);
-  }
+    if (!res.ok || (expectedStatus !== undefined && res.status !== expectedStatus)) {
+      throw new ApiError(res.status, text, path);
+    }
 
-  // Handle empty responses (204 No Content, etc.)
-  const text = await res.text();
-  return text ? (JSON.parse(text) as T) : (undefined as T);
+    return text ? (JSON.parse(text) as T) : (undefined as T);
+  } finally {
+    if (timeout !== undefined) clearTimeout(timeout);
+  }
 }

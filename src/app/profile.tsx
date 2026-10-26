@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
   View,
   StyleSheet,
@@ -24,6 +24,7 @@ export default function ProfileScreen() {
   const session = useSession();
   const [showDeleteSheet, setShowDeleteSheet] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const deletionInProgress = useRef(false);
   const [copiedUserId, setCopiedUserId] = useState(false);
 
   const handleCopyUserId = useCallback(async () => {
@@ -35,23 +36,24 @@ export default function ProfileScreen() {
   }, [session.userId]);
 
   const handleDeleteAccount = useCallback(async () => {
+    if (deletionInProgress.current) return;
+    deletionInProgress.current = true;
     setIsDeleting(true);
     try {
-      // 1. Send authenticated delete request to backend API
       try {
         await deleteAccount();
       } catch (apiError) {
-        console.warn("[Profile] API delete account encountered error:", apiError);
+        console.warn("[Profile] Server did not confirm account deletion:", apiError);
+        Alert.alert("Server error", "Server error. Please try again.", [{ text: "OK" }]);
+        return;
       }
 
-      // 2. Wipe local SQLite databases & storage
       try {
         await wipeAllDatabases();
       } catch (dbError) {
         console.warn("[Profile] Failed to wipe local databases:", dbError);
       }
 
-      // 3. Clear local session & authentication state
       await session.clearSession();
       setShowDeleteSheet(false);
     } catch (error) {
@@ -62,6 +64,7 @@ export default function ProfileScreen() {
         [{ text: "OK" }]
       );
     } finally {
+      deletionInProgress.current = false;
       setIsDeleting(false);
     }
   }, [session]);
