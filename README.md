@@ -173,6 +173,31 @@ The project uses **Jest** with `jest-expo` and React Native Testing Library for 
 bun run test
 ```
 
+### Database migrations
+
+The database schema in `src/utils/db/migrations.ts` starts from a version-1
+baseline.
+
+Chat and primary databases have independent, ordered migration lists. Append new
+SQL entries rather than modifying an already-released entry. Each entry's position
+defines its version, starting at 1. Opening a database reads `PRAGMA user_version`,
+skips completed migrations, and rejects versions newer than the app supports.
+All pending migrations and the final version update commit in one transaction.
+Failures roll back instead of being ignored, and reopening can retry the upgrade.
+
+Migrations run on the already-keyed SQLCipher connection before the connection
+manager makes it available to callers. Do not run them against a published
+connection or replace the transaction with `withExclusiveTransactionAsync`, which
+opens a separate connection without applying the runtime encryption key.
+
+Queue indexes cover status filtering and timestamp ordering. Status, message-type,
+counter, and boolean constraints reject invalid values. The unique contact user ID
+already supplies its lookup index, so no duplicate index is created.
+
+Migration tests use Node's built-in SQLite engine (Node 22.13+; CI uses Node 24)
+without adding dependencies. They verify SQL schemas, rollback, stored data, and
+query plans; native SQLCipher behavior still requires device/simulator validation.
+
 ---
 
 ## CI/CD & Automated Builds
