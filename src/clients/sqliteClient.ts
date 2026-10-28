@@ -53,7 +53,6 @@ async function applyKeyAndVerify(
             'SELECT count(*) as count FROM sqlite_master;'
         );
     } catch {
-        await db.closeAsync().catch(() => { });
         throw new DatabaseKeyMismatchError(chatId);
     }
 }
@@ -102,11 +101,20 @@ export async function openChatDatabase(chatId: string): Promise<SQLite.SQLiteDat
             throw new DatabaseCorruptedError(chatId, e);
         }
 
-        await applyKeyAndVerify(db, key, chatId);
-        await migrateChatDatabase(db);
+        try {
+            await applyKeyAndVerify(db, key, chatId);
+            await migrateChatDatabase(db);
 
-        activeDatabases.set(chatId, db);
-        return db;
+            activeDatabases.set(chatId, db);
+            return db;
+        } catch (error) {
+            try {
+                await db.closeAsync();
+            } catch (closeError) {
+                console.warn(`Failed to close database for chat ${chatId} after initialization failure`, closeError);
+            }
+            throw error;
+        }
     })();
 
     chatDbPending.set(chatId, openPromise);
@@ -181,11 +189,20 @@ export async function openPrimaryDatabase(): Promise<SQLite.SQLiteDatabase> {
             throw new DatabaseCorruptedError(PRIMARY_CHAT_ID, e);
         }
 
-        await applyKeyAndVerify(db, key, PRIMARY_CHAT_ID);
-        await migratePrimaryDatabase(db);
+        try {
+            await applyKeyAndVerify(db, key, PRIMARY_CHAT_ID);
+            await migratePrimaryDatabase(db);
 
-        primaryDb = db;
-        return db;
+            primaryDb = db;
+            return db;
+        } catch (error) {
+            try {
+                await db.closeAsync();
+            } catch (closeError) {
+                console.warn('Failed to close primary database after initialization failure', closeError);
+            }
+            throw error;
+        }
     })();
 
     primaryDbPending = openPromise;
