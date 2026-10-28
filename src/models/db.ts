@@ -39,7 +39,7 @@ export interface OutboxEntry {
     status: OutboxStatus;
     retry_count: number;
     created_at: number;
-    updated_at: number;
+    sent_at: number | null;
 }
 
 export type InboxStatus = "pending" | "processed" | "failed";
@@ -50,8 +50,8 @@ export interface InboxEntry {
     payload: string;
     status: InboxStatus;
     retry_count: number;
-    created_at: number;
-    processed_at?: number;
+    received_at: number;
+    processed_at: number | null;
 }
 
 export interface ContactMapping {
